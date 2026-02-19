@@ -976,12 +976,13 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 .bottom-nav .nav-item > span { font-size: 11px; font-weight: 600; letter-spacing: .1px; }
 .bottom-nav .jobs-badge {
   position: absolute;
-  top: 3px; right: calc(50% - 20px);
+  top: 6px; right: calc(50% - 22px);
   min-width: 16px; height: 16px;
   background: var(--red); color: #fff;
   border-radius: 8px; font-size: 9px; font-weight: 700;
   padding: 0 4px; line-height: 16px;
   display: none; align-items: center; justify-content: center;
+  pointer-events: none;
 }
 
 /* ═══════════════════════════════════════════════
@@ -1044,8 +1045,10 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   .filter-row { flex-wrap: wrap; }
   .filter-row .form-select { flex: 1; min-width: 120px; }
 
-  /* Map: subtract bottom nav height */
+  /* Map: full width, no side panel on mobile */
   #map-wrap { height: calc(100dvh - var(--topbar-h) - 64px - env(safe-area-inset-bottom)); }
+  #map-panel { display: none !important; }
+  #map { width: 100%; }
 
   /* Live job adjustments */
   .live-timer-bar { padding: 12px 14px; }

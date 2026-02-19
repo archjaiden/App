@@ -975,6 +975,7 @@ function renderMap(el){
     attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     subdomains:'abcd',maxZoom:19}).addTo(_mapInstance);
   mapRefreshMarkers();
+  setTimeout(function(){if(_mapInstance)_mapInstance.invalidateSize();},120);
   document.getElementById('map-refresh-btn').addEventListener('click',mapRefreshMarkers);
   document.getElementById('map-search').addEventListener('input',function(e){mapRenderList(e.target.value);});
 }
