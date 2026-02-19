@@ -258,8 +258,11 @@ function fmtBytes(b) {
 }
 function fileIcon(name) {
   var ext=(name||'').split('.').pop().toLowerCase();
-  var m={pdf:'📄',doc:'📝',docx:'📝',xls:'📊',xlsx:'📊',txt:'📃',csv:'📊',zip:'🗜',rar:'🗜',png:'🖼',jpg:'🖼',jpeg:'🖼',gif:'🖼',webp:'🖼'};
-  return m[ext]||'📁';
+  var images=['png','jpg','jpeg','gif','webp'];
+  var archives=['zip','rar'];
+  if(images.indexOf(ext)>=0) return icon('camera',16);
+  if(archives.indexOf(ext)>=0) return icon('folder',16);
+  return icon('doc',16);
 }
 function statusBadge(status) {
   var cls=STATUS_BADGE[status]||'badge-gray';
@@ -280,6 +283,38 @@ function searchBarHTML(id, ph) {
 function formGrp(full, label, ctrl) {
   return '<div class="form-group '+(full?'full':'')+'"><label class="form-label">'+label+'</label>'+ctrl+'</div>';
 }
+
+/* ── SVG icon helper ─────────────────────────── */
+var IP = {
+  refresh:  'M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99',
+  clock:    'M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
+  check_c:  'M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
+  users:    'M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0',
+  camera:   'M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316zM16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0zM18.75 10.5h.008v.008h-.008V10.5z',
+  clip:     'M18.375 12.739l-7.693 7.693a4.5 4.5 0 0 1-6.364-6.364l10.94-10.94A3 3 0 1 1 19.5 7.372L8.552 18.32m.009-.01-.01.01m5.699-9.941-7.81 7.81a1.5 1.5 0 0 0 2.112 2.13',
+  folder:   'M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44z',
+  doc:      'M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9z',
+  dl:       'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3',
+  ul:       'M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5',
+  trash:    'M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0',
+  plus:     'M12 4.5v15m7.5-7.5h-15',
+  user_add: 'M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0zM4 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A12.318 12.318 0 0 1 10.374 21c-2.331 0-4.512-.645-6.374-1.766z',
+  map:      'M9 6.75V15m6-6v8.25m.503 3.498 4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 0 0-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z',
+  list:     'M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0z',
+  clipboard:'M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25z',
+  pencil:   'M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931zm0 0L19.5 7.125',
+  play:     'M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 0 1 0 1.971l-11.54 6.347a1.125 1.125 0 0 1-1.667-.985V5.653z',
+  pin:      'M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0zM19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 0 1 15 0z',
+  phone:    'M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25z',
+  person:   'M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0zM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632z',
+  circle:   'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z',
+  warn:     'M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z',
+};
+function icon(name, sz) {
+  sz = sz||18;
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="'+sz+'" height="'+sz+'" stroke-linecap="round" stroke-linejoin="round"><path d="'+IP[name]+'"/></svg>';
+}
+
 function compressImage(file) {
   return new Promise(function(resolve,reject){
     var reader=new FileReader(); reader.onerror=reject;
@@ -353,8 +388,7 @@ function navigate(view, params) {
 function updateBadges() {
   var jobs=getJobs();
   var n=jobs.filter(function(j){return j.status==='in-progress'||j.status==='pending';}).length;
-  var badge=document.getElementById('jobs-badge');
-  if(badge){badge.textContent=n;badge.style.display=n>0?'inline-flex':'none';}
+  document.querySelectorAll('.jobs-badge').forEach(function(badge){badge.textContent=n;badge.style.display=n>0?'inline-flex':'none';});
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -382,7 +416,7 @@ function renderDashboard(el) {
       '<div style="font-weight:700;font-size:15px;margin-bottom:6px">'+esc(j.clientName||'—')+'</div>'+
       (types?'<div class="tag-strip" style="margin-bottom:10px">'+types+'</div>':'')+
       (j.timeIn?'<div style="font-size:12px;color:var(--text-2);margin-bottom:10px">⏰ '+fmtTime(j.timeIn)+(j.timeOut?' → '+fmtTime(j.timeOut):'')+(j.duration?' · <strong>'+esc(j.duration)+'</strong>':'')+'</div>':'')+
-      '<button class="btn btn-primary btn-sm go-live-dash" data-id="'+j.id+'" style="font-size:12px">▶ Go Live</button>'+
+      '<button class="btn btn-primary btn-sm go-live-dash" data-id="'+j.id+'" style="font-size:12px;gap:5px">'+icon('play',12)+' Go Live</button>'+
     '</div>';
   }
 
@@ -401,7 +435,7 @@ function renderDashboard(el) {
   }
   if(!leftCol){
     leftCol='<div class="empty-state" style="padding:48px 0">'+
-      '<div class="empty-state-icon">✅</div>'+
+      '<div class="empty-state-icon">'+icon('check_c',40)+'</div>'+
       '<div class="empty-state-title">All clear!</div>'+
       '<div class="empty-state-desc">No active jobs or upcoming work for today or tomorrow.</div>'+
     '</div>';
@@ -412,20 +446,20 @@ function renderDashboard(el) {
 
   el.innerHTML=
     '<div class="grid grid-4 mb-24">'+
-      dStatCard('In Progress',active.length,'var(--orange)','rgba(255,159,10,.12)','🔄')+
-      dStatCard('Pending',pendingN,'var(--purple)','rgba(191,90,242,.12)','⏳')+
-      dStatCard('Completed',completedN,'var(--green)','rgba(48,209,88,.12)','✅')+
-      dStatCard('Clients',clients.length,'var(--teal)','rgba(90,200,245,.12)','👥')+
+      dStatCard('In Progress',active.length,'var(--orange)','rgba(255,159,10,.12)',icon('refresh',18))+
+      dStatCard('Pending',pendingN,'var(--purple)','rgba(191,90,242,.12)',icon('clock',18))+
+      dStatCard('Completed',completedN,'var(--green)','rgba(48,209,88,.12)',icon('check_c',18))+
+      dStatCard('Clients',clients.length,'var(--teal)','rgba(90,200,245,.12)',icon('users',18))+
     '</div>'+
     '<div class="grid grid-2" style="align-items:start;gap:20px">'+
       '<div>'+leftCol+'</div>'+
       '<div style="display:flex;flex-direction:column;gap:16px">'+
         '<div class="card"><div class="card-header"><span class="card-title">Quick Actions</span></div>'+
           '<div class="card-body" style="display:flex;flex-direction:column;gap:8px">'+
-          '<button class="btn btn-secondary w-full" id="qa-job" style="justify-content:flex-start">➕  New Job</button>'+
-          '<button class="btn btn-secondary w-full" id="qa-cl"  style="justify-content:flex-start">👤  Add Client</button>'+
-          '<button class="btn btn-secondary w-full" id="qa-all" style="justify-content:flex-start">📋  All Jobs</button>'+
-          '<button class="btn btn-secondary w-full" id="qa-map" style="justify-content:flex-start">🗺️  Open Map</button>'+
+          '<button class="btn btn-secondary w-full" id="qa-job" style="justify-content:flex-start;gap:8px">'+icon('plus',14)+'  New Job</button>'+
+          '<button class="btn btn-secondary w-full" id="qa-cl"  style="justify-content:flex-start;gap:8px">'+icon('user_add',14)+'  Add Client</button>'+
+          '<button class="btn btn-secondary w-full" id="qa-all" style="justify-content:flex-start;gap:8px">'+icon('clipboard',14)+'  All Jobs</button>'+
+          '<button class="btn btn-secondary w-full" id="qa-map" style="justify-content:flex-start;gap:8px">'+icon('map',14)+'  Open Map</button>'+
           '</div></div>'+
         (recentDone.length?
           '<div class="card"><div class="card-header"><span class="card-title">Recent Completions</span></div>'+
@@ -478,7 +512,7 @@ function renderClients(el, params) {
 }
 function clRenderTable(wrap,q){
   var clients=getClients().filter(function(c){return !q||(c.name+' '+c.suburb+' '+c.contact+' '+c.phone).toLowerCase().includes(q.toLowerCase());});
-  if(!clients.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">👥</div><div class="empty-state-title">'+(q?'No results':'No clients yet')+'</div></div>';return;}
+  if(!clients.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">'+icon('users',40)+'</div><div class="empty-state-title">'+(q?'No results':'No clients yet')+'</div></div>';return;}
   wrap.innerHTML='<div class="table-wrap"><table><thead><tr><th>Client</th><th>Contact</th><th>Phone</th><th>Suburb</th><th>Jobs</th><th>Added</th><th></th></tr></thead><tbody>'+
     clients.map(function(c){
       var jc=getJobsForClient(c.id).length;
@@ -490,8 +524,8 @@ function clRenderTable(wrap,q){
         '<td><span class="badge '+(jc?'badge-blue':'badge-gray')+'">'+jc+'</span></td>'+
         '<td class="text-muted text-sm">'+fmtDate(c.createdAt)+'</td>'+
         '<td style="text-align:right;white-space:nowrap">'+
-          '<button class="btn btn-ghost btn-icon btn-sm cl-edit" data-id="'+c.id+'">✏️</button>'+
-          '<button class="btn btn-ghost btn-icon btn-sm cl-del"  data-id="'+c.id+'">🗑</button>'+
+          '<button class="btn btn-ghost btn-icon btn-sm cl-edit" data-id="'+c.id+'">'+icon('pencil',14)+'</button>'+
+          '<button class="btn btn-ghost btn-icon btn-sm cl-del"  data-id="'+c.id+'">'+icon('trash',14)+'</button>'+
         '</td></tr>';
     }).join('')+
     '</tbody></table></div>';
@@ -519,14 +553,14 @@ function clOpenModal(onSave,editId){
       formGrp(true,'Tags (comma separated)','<input class="form-input" id="cf-tags" value="'+esc((v.tags||[]).join(', '))+'" placeholder="Corporate, Priority">')+
       formGrp(true,'Notes','<textarea class="form-textarea" id="cf-notes" placeholder="Access info, site details…">'+esc(v.notes||'')+'</textarea>')+
     '</div>',
-    '<button class="btn btn-secondary" id="cf-geo">📍 Geocode</button><div style="flex:1"></div>'+
+    '<button class="btn btn-secondary" id="cf-geo" style="gap:6px">'+icon('pin',14)+' Geocode</button><div style="flex:1"></div>'+
     '<button class="btn btn-secondary" id="cf-cancel">Cancel</button><button class="btn btn-primary" id="cf-save">'+(editId?'Save':'Add Client')+'</button>',
     'modal-lg');
   document.getElementById('cf-cancel').addEventListener('click',closeModal);
   document.getElementById('cf-geo').addEventListener('click',async function(){
-    var btn=document.getElementById('cf-geo');btn.textContent='Geocoding…';btn.disabled=true;
+    var btn=document.getElementById('cf-geo');btn.innerHTML=icon('pin',14)+' Geocoding…';btn.disabled=true;
     var coords=await geocodeAddress(document.getElementById('cf-addr').value,document.getElementById('cf-suburb').value,document.getElementById('cf-pc').value);
-    btn.textContent='📍 Geocode';btn.disabled=false;
+    btn.innerHTML=icon('pin',14)+' Geocode';btn.disabled=false;
     if(coords){document.getElementById('cf-lat').value=coords.lat.toFixed(6);document.getElementById('cf-lng').value=coords.lng.toFixed(6);toast('Coordinates found!','success');}
     else toast('Could not geocode — enter manually','error');
   });
@@ -586,7 +620,7 @@ function jbRenderTable(wrap){
   if(priority)jobs=jobs.filter(function(j){return j.priority===priority;});
   if(clientId)jobs=jobs.filter(function(j){return j.clientId===clientId;});
   if(q){var ql=q.toLowerCase();jobs=jobs.filter(function(j){return(j.jobNumber+' '+j.clientName+' '+j.notes+' '+(j.jobTypes||[]).join(' ')).toLowerCase().includes(ql);});}
-  if(!jobs.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-title">'+(q||status||priority||clientId?'No results':'No jobs yet')+'</div></div>';return;}
+  if(!jobs.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">'+icon('clipboard',40)+'</div><div class="empty-state-title">'+(q||status||priority||clientId?'No results':'No jobs yet')+'</div></div>';return;}
   wrap.innerHTML='<div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Client</th><th>Job Types</th><th>Status</th><th>Priority</th><th>Time</th><th></th></tr></thead><tbody>'+
     jobs.map(function(j){
       var types=(j.jobTypes||[]).slice(0,3).map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('');
@@ -599,8 +633,8 @@ function jbRenderTable(wrap){
         '<td>'+statusBadge(j.status)+'</td><td>'+priorityHtml(j.priority)+'</td>'+
         '<td class="text-muted text-sm" style="white-space:nowrap">'+(j.timeIn?fmtTime(j.timeIn):'—')+(j.timeOut?' → '+fmtTime(j.timeOut):'')+' </td>'+
         '<td style="text-align:right;white-space:nowrap">'+
-          '<button class="btn btn-ghost btn-icon btn-sm jb-edit" data-id="'+j.id+'">✏️</button>'+
-          '<button class="btn btn-ghost btn-icon btn-sm jb-del"  data-id="'+j.id+'">🗑</button>'+
+          '<button class="btn btn-ghost btn-icon btn-sm jb-edit" data-id="'+j.id+'">'+icon('pencil',14)+'</button>'+
+          '<button class="btn btn-ghost btn-icon btn-sm jb-del"  data-id="'+j.id+'">'+icon('trash',14)+'</button>'+
         '</td></tr>';
     }).join('')+'</tbody></table></div>';
   wrap.querySelectorAll('.jb-row').forEach(function(row){row.addEventListener('click',function(e){if(e.target.closest('button'))return;openJobDetail(row.dataset.id);});});
@@ -613,9 +647,9 @@ function jbRenderTable(wrap){
 function openJobDetail(id){
   var j=getJob(id); if(!j)return;
   var types=(j.jobTypes||[]).map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('');
-  var checks=(j.checklist||[]).map(function(c){return '<div class="checklist-item '+(c.checked?'done':'')+'"><span>'+(c.checked?'✅':'⬜')+'</span><label>'+esc(c.label)+'</label></div>';}).join('');
+  var checks=(j.checklist||[]).map(function(c){return '<div class="checklist-item '+(c.checked?'done':'')+'"><span style="flex-shrink:0;color:'+(c.checked?'var(--green)':'var(--text-3)')+'">'+icon(c.checked?'check_c':'circle',16)+'</span><label>'+esc(c.label)+'</label></div>';}).join('');
   var photos=(j.photos||[]).map(function(p,i){return '<div class="photo-thumb" data-idx="'+i+'" data-src="'+p.dataUrl+'" style="cursor:pointer"><img src="'+p.dataUrl+'" alt="'+esc(p.name)+'" loading="lazy"></div>';}).join('');
-  var docs=(j.documents||[]).map(function(d){return '<div class="file-item"><div class="file-item-icon">'+fileIcon(d.name)+'</div><div class="file-item-info"><div class="file-item-name">'+esc(d.name)+'</div><div class="file-item-size">'+fmtBytes(d.size)+'</div></div>'+(d.dataUrl?'<a href="'+d.dataUrl+'" download="'+esc(d.name)+'" class="btn btn-ghost btn-icon btn-sm">⬇</a>':'')+' </div>';}).join('');
+  var docs=(j.documents||[]).map(function(d){return '<div class="file-item"><div class="file-item-icon">'+fileIcon(d.name)+'</div><div class="file-item-info"><div class="file-item-name">'+esc(d.name)+'</div><div class="file-item-size">'+fmtBytes(d.size)+'</div></div>'+(d.dataUrl?'<a href="'+d.dataUrl+'" download="'+esc(d.name)+'" class="btn btn-ghost btn-icon btn-sm">'+icon('dl',14)+'</a>':'')+' </div>';}).join('');
   var body='<div class="detail-grid">'+
     '<span class="detail-key">Job #</span><span class="detail-val font-semibold">'+esc(j.jobNumber)+'</span>'+
     '<span class="detail-key">Date</span><span class="detail-val">'+fmtDate(j.date)+'</span>'+
@@ -636,7 +670,7 @@ function openJobDetail(id){
   openModal(esc(j.jobNumber)+' — '+esc(j.clientName||'Job'),body,
     '<button class="btn btn-secondary" id="jd-close">Close</button>'+
     '<button class="btn btn-ghost" id="jd-edit">Edit Job</button>'+
-    (canLive?'<button class="btn btn-success" id="jd-live">▶ Go Live</button>':''),
+    (canLive?'<button class="btn btn-success" id="jd-live" style="gap:6px">'+icon('play',14)+' Go Live</button>':''),
     'modal-lg');
   document.getElementById('jd-close').addEventListener('click',closeModal);
   document.getElementById('jd-edit').addEventListener('click',function(){closeModal();navigate('new-job',{editId:j.id});});
@@ -701,10 +735,10 @@ function renderNewJob(el, params) {
     '</div>'+
     '<div class="card-body"><div class="checklist" id="nj-checklist"></div></div></div>'+
     '<div class="card"><div class="card-header"><span class="card-title">Photos</span></div><div class="card-body">'+
-      '<div class="file-drop" id="nj-photodrop"><div class="file-drop-icon">📷</div><p><span>Click to upload</span> or drag &amp; drop photos</p><p style="font-size:11px;margin-top:4px;color:var(--text-3)">JPEG, PNG, WEBP — compressed automatically</p></div>'+
+      '<div class="file-drop" id="nj-photodrop"><div class="file-drop-icon">'+icon('camera',28)+'</div><p><span>Click to upload</span> or drag &amp; drop photos</p><p style="font-size:11px;margin-top:4px;color:var(--text-3)">JPEG, PNG, WEBP — compressed automatically</p></div>'+
       '<div class="photo-grid mt-8" id="nj-photogrid"></div></div></div>'+
     '<div class="card"><div class="card-header"><span class="card-title">Documents</span></div><div class="card-body">'+
-      '<div class="file-drop" id="nj-docdrop"><div class="file-drop-icon">📎</div><p><span>Click to upload</span> or drag &amp; drop files</p></div>'+
+      '<div class="file-drop" id="nj-docdrop"><div class="file-drop-icon">'+icon('clip',28)+'</div><p><span>Click to upload</span> or drag &amp; drop files</p></div>'+
       '<div class="file-list mt-8" id="nj-doclist"></div></div></div>'+
     '</div>';
 
@@ -793,7 +827,7 @@ function renderLiveJob(el, params) {
   document.getElementById('page-title').textContent='Live Job';
   document.getElementById('topbar-actions').innerHTML=
     '<button class="btn btn-ghost" id="lj-back">← Exit</button>'+
-    '<button class="btn btn-success" id="lj-done">✓ Complete Job</button>';
+    '<button class="btn btn-success" id="lj-done" style="gap:6px">'+icon('check_c',16)+' Complete Job</button>';
 
   var types=(j.jobTypes||[]).map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('');
   var checklist=j.checklist||[];
@@ -824,7 +858,7 @@ function renderLiveJob(el, params) {
       '<div class="live-right">'+
         '<div class="section-title">Photos</div>'+
         '<div class="file-drop file-drop-sm" id="lj-photodrop">'+
-          '<div class="file-drop-icon">📷</div><p style="font-size:12px">Tap to add photos</p>'+
+          '<div class="file-drop-icon">'+icon('camera',20)+'</div><p style="font-size:12px">Tap to add photos</p>'+
         '</div>'+
         '<div class="photo-grid mt-8" id="lj-photogrid"></div>'+
         '<div class="section-title mt-16">Notes</div>'+
@@ -959,8 +993,8 @@ function mapRefreshMarkers(){
       '<div style="min-width:200px;font-family:-apple-system,sans-serif">'+
       '<div style="font-weight:700;font-size:14px;margin-bottom:4px">'+esc(c.name)+'</div>'+
       '<div style="font-size:12px;color:#aaa;margin-bottom:8px">'+esc(c.address)+', '+esc(c.suburb)+'</div>'+
-      (c.contact?'<div style="font-size:12px;margin-bottom:2px">👤 '+esc(c.contact)+'</div>':'')+
-      (c.phone?'<div style="font-size:12px;margin-bottom:2px">📞 '+esc(c.phone)+'</div>':'')+
+      (c.contact?'<div style="font-size:12px;margin-bottom:2px;display:flex;align-items:center;gap:4px">'+icon('person',12)+' '+esc(c.contact)+'</div>':'')+
+      (c.phone?'<div style="font-size:12px;margin-bottom:2px;display:flex;align-items:center;gap:4px">'+icon('phone',12)+' '+esc(c.phone)+'</div>':'')+
       '<hr style="border:none;border-top:1px solid rgba(255,255,255,.1);margin:8px 0">'+
       '<div style="font-size:12px;color:#aaa">'+jobs.length+' job'+(jobs.length!==1?'s':'')+
         (active?' · <span style="color:var(--orange)">'+active+' active</span>':'')+
@@ -1023,7 +1057,7 @@ function docRenderTable(wrap,q,typeFilter){
   });
   var filtered=q?all.filter(function(f){return(f.name+' '+f.clientName+' '+f.jobNumber).toLowerCase().includes(q.toLowerCase());}):all;
   filtered.sort(function(a,b){return(b.date||'').localeCompare(a.date||'');});
-  if(!filtered.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">📁</div><div class="empty-state-title">'+(q?'No results':'No documents yet')+'</div><div class="empty-state-desc">Photos &amp; documents attached to jobs appear here</div></div>';return;}
+  if(!filtered.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">'+icon('folder',40)+'</div><div class="empty-state-title">'+(q?'No results':'No documents yet')+'</div><div class="empty-state-desc">Photos &amp; documents attached to jobs appear here</div></div>';return;}
   var photos=filtered.filter(function(f){return f.type==='photo';});
   var docs=filtered.filter(function(f){return f.type==='document';});
   var html='<div class="grid grid-3 mb-16">'+
@@ -1038,7 +1072,7 @@ function docRenderTable(wrap,q,typeFilter){
   }
   if(docs.length&&typeFilter!=='photo'){
     html+='<div class="card"><div class="card-header"><span class="card-title">Documents ('+docs.length+')</span></div><div class="card-body"><div class="file-list">'+
-      docs.map(function(d){return '<div class="file-item doc-row" data-job="'+d.jobId+'" style="cursor:pointer"><div class="file-item-icon">'+fileIcon(d.name)+'</div><div class="file-item-info"><div class="file-item-name">'+esc(d.name)+'</div><div class="file-item-size">'+fmtBytes(d.size)+' · <span class="text-accent">'+esc(d.jobNumber)+'</span> · '+esc(d.clientName)+' · '+fmtDate(d.date)+'</div></div>'+(d.dataUrl?'<a href="'+d.dataUrl+'" download="'+esc(d.name)+'" class="btn btn-ghost btn-icon btn-sm" onclick="event.stopPropagation()">⬇</a>':'')+' </div>';}).join('')+
+      docs.map(function(d){return '<div class="file-item doc-row" data-job="'+d.jobId+'" style="cursor:pointer"><div class="file-item-icon">'+fileIcon(d.name)+'</div><div class="file-item-info"><div class="file-item-name">'+esc(d.name)+'</div><div class="file-item-size">'+fmtBytes(d.size)+' · <span class="text-accent">'+esc(d.jobNumber)+'</span> · '+esc(d.clientName)+' · '+fmtDate(d.date)+'</div></div>'+(d.dataUrl?'<a href="'+d.dataUrl+'" download="'+esc(d.name)+'" class="btn btn-ghost btn-icon btn-sm" onclick="event.stopPropagation()">'+icon('dl',14)+'</a>':'')+' </div>';}).join('')+
       '</div></div></div>';
   }
   wrap.innerHTML=html;
@@ -1080,7 +1114,11 @@ function stRenderTab(){
       formGrp(false,'Company','<input class="form-input" id="s-company" value="'+esc(s.company||'')+'" placeholder="Company name">')+
       formGrp(false,'Phone','<input class="form-input" id="s-phone" value="'+esc(s.phone||'')+'" placeholder="04xx xxx xxx">')+
       formGrp(false,'Email','<input class="form-input" id="s-email" value="'+esc(s.email||'')+'" placeholder="you@example.com">') +
-      '</div></div></div>';
+      '</div></div></div>'+
+      '<div class="card mt-16"><div class="card-header"><span class="card-title">Account</span></div><div class="card-body">'+
+      '<div style="display:flex;gap:8px;align-items:center"><button class="btn btn-secondary" id="st-logout" style="gap:6px">'+icon('person',14)+' Sign Out</button><span style="font-size:12px;color:var(--text-2)">Signed in as Jaiden</span></div>'+
+      '</div></div>';
+    body.querySelector('#st-logout').addEventListener('click',logout);
   } else if(_stab==='jobtypes'){
     var types=(s.jobTypes||JOB_TYPES).slice();
     function renderTList(){
@@ -1104,11 +1142,11 @@ function stRenderTab(){
       '<div style="background:var(--bg-3);border-radius:10px;height:8px;overflow:hidden"><div style="background:'+(pct>85?'var(--red)':pct>60?'var(--orange)':'var(--accent)')+';height:100%;width:'+pct+'%;border-radius:10px"></div></div>'+
       '<p style="font-size:12px;color:var(--text-2);margin-top:8px">Large photos are compressed automatically before storing.</p></div></div>'+
       '<div class="card mt-16"><div class="card-header"><span class="card-title">Export / Import</span></div><div class="card-body" style="display:flex;flex-direction:column;gap:10px">'+
-      '<div style="display:flex;gap:8px;align-items:center"><button class="btn btn-secondary" id="st-export">⬇ Export All Data (JSON)</button><span style="font-size:12px;color:var(--text-2)">Downloads a full backup</span></div>'+
-      '<div style="display:flex;gap:8px;align-items:center"><button class="btn btn-secondary" id="st-import">⬆ Import Data (JSON)</button><span style="font-size:12px;color:var(--text-2)">Merges with existing data</span></div>'+
+      '<div style="display:flex;gap:8px;align-items:center"><button class="btn btn-secondary" id="st-export" style="gap:6px">'+icon('dl',14)+' Export All Data (JSON)</button><span style="font-size:12px;color:var(--text-2)">Downloads a full backup</span></div>'+
+      '<div style="display:flex;gap:8px;align-items:center"><button class="btn btn-secondary" id="st-import" style="gap:6px">'+icon('ul',14)+' Import Data (JSON)</button><span style="font-size:12px;color:var(--text-2)">Merges with existing data</span></div>'+
       '</div></div>'+
       '<div class="card mt-16" style="border-color:rgba(255,69,58,.2)"><div class="card-header"><span class="card-title" style="color:var(--red)">Danger Zone</span></div><div class="card-body">'+
-      '<div style="display:flex;gap:8px;align-items:center"><button class="btn btn-danger" id="st-clear">🗑 Clear All Data</button><span style="font-size:12px;color:var(--text-2)">Permanently removes everything</span></div></div></div>';
+      '<div style="display:flex;gap:8px;align-items:center"><button class="btn btn-danger" id="st-clear" style="gap:6px">'+icon('trash',14)+' Clear All Data</button><span style="font-size:12px;color:var(--text-2)">Permanently removes everything</span></div></div></div>';
     body.querySelector('#st-export').addEventListener('click',stExport);
     body.querySelector('#st-import').addEventListener('click',stImport);
     body.querySelector('#st-clear').addEventListener('click',async function(){
@@ -1160,9 +1198,42 @@ function stImport(){
 }
 
 /* ═══════════════════════════════════════════════════════
-   INIT
+   AUTH
 ═══════════════════════════════════════════════════════ */
-function init(){
+var _AUTH_USER='Jaiden', _AUTH_PASS='Jaiden2020', _AUTH_KEY='td_auth';
+
+function isLoggedIn(){ return localStorage.getItem(_AUTH_KEY)==='1'; }
+
+function logout(){
+  localStorage.removeItem(_AUTH_KEY);
+  location.reload();
+}
+
+function initLogin(){
+  var screen=document.getElementById('login-screen');
+  var form=document.getElementById('login-form');
+  if(!screen||!form)return;
+  // Focus username field
+  var uField=document.getElementById('login-user');
+  if(uField)setTimeout(function(){uField.focus();},120);
+  form.addEventListener('submit',function(e){
+    e.preventDefault();
+    var u=(document.getElementById('login-user').value||'').trim();
+    var p=(document.getElementById('login-pass').value||'');
+    var err=document.getElementById('login-err');
+    if(u===_AUTH_USER && p===_AUTH_PASS){
+      localStorage.setItem(_AUTH_KEY,'1');
+      screen.classList.add('hidden');
+      startApp();
+    } else {
+      err.style.display='';
+      document.getElementById('login-pass').value='';
+      document.getElementById('login-pass').focus();
+    }
+  });
+}
+
+function startApp(){
   try{
     seedIfEmpty();
     var s=getSettings();
@@ -1172,8 +1243,20 @@ function init(){
     navigate('dashboard');
   }catch(err){
     var el=document.getElementById('page-content');
-    if(el)el.innerHTML='<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-title" style="opacity:1;color:var(--red)">Startup Error</div><div class="empty-state-desc" style="color:var(--red)">'+esc(String(err))+'</div></div>';
+    if(el)el.innerHTML='<div class="empty-state"><div class="empty-state-icon" style="color:var(--red)">'+icon('warn',40)+'</div><div class="empty-state-title" style="opacity:1;color:var(--red)">Startup Error</div><div class="empty-state-desc" style="color:var(--red)">'+esc(String(err))+'</div></div>';
     console.error('TechDoc init error:',err);
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════════ */
+function init(){
+  if(isLoggedIn()){
+    document.getElementById('login-screen').classList.add('hidden');
+    startApp();
+  } else {
+    initLogin();
   }
 }
 document.addEventListener('DOMContentLoaded',init);
