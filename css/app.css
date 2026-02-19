@@ -55,9 +55,10 @@ body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  touch-action: manipulation; /* prevent double-tap zoom on iOS */
 }
-a { text-decoration: none; color: inherit; }
-button { font-family: var(--font); }
+a { text-decoration: none; color: inherit; touch-action: manipulation; }
+button { font-family: var(--font); touch-action: manipulation; }
 input, select, textarea { font-family: var(--font); }
 
 /* ── App Layout ──────────────────────────────── */
@@ -948,7 +949,7 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 }
 .bottom-nav-inner {
   display: flex;
-  height: 54px;
+  height: 64px;
   padding-bottom: env(safe-area-inset-bottom);
 }
 .bottom-nav .nav-item {
@@ -957,21 +958,22 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   color: var(--text-3);
   cursor: pointer;
   border: none;
   background: none;
-  padding: 6px 2px;
+  padding: 8px 4px;
   position: relative;
   -webkit-tap-highlight-color: transparent;
   transition: color var(--t);
   text-decoration: none;
+  min-width: 44px;
 }
 .bottom-nav .nav-item.active { color: var(--accent); }
-.bottom-nav .nav-item > svg  { width: 22px; height: 22px; stroke-width: 1.6; }
-.bottom-nav .nav-item > div > svg { width: 22px; height: 22px; stroke-width: 1.6; }
-.bottom-nav .nav-item > span { font-size: 10px; font-weight: 600; letter-spacing: .2px; }
+.bottom-nav .nav-item > svg       { width: 26px; height: 26px; stroke-width: 1.8; }
+.bottom-nav .nav-item > div > svg { width: 26px; height: 26px; stroke-width: 1.8; }
+.bottom-nav .nav-item > span { font-size: 11px; font-weight: 600; letter-spacing: .1px; }
 .bottom-nav .jobs-badge {
   position: absolute;
   top: 3px; right: calc(50% - 20px);
@@ -1005,8 +1007,18 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   /* Spacing accounts for bottom nav + safe area */
   .page-content {
     padding: 14px;
-    padding-bottom: calc(54px + env(safe-area-inset-bottom) + 14px);
+    padding-bottom: calc(64px + env(safe-area-inset-bottom) + 14px);
   }
+
+  /* Prevent iOS auto-zoom on input focus (must be ≥ 16px) */
+  .form-input,
+  .form-select,
+  .form-textarea { font-size: 16px; }
+
+  /* Comfortable touch targets */
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 36px; }
+  .btn-icon { min-width: 44px; min-height: 44px; }
 
   /* Topbar wraps on narrow screens */
   .topbar {
@@ -1033,7 +1045,7 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   .filter-row .form-select { flex: 1; min-width: 120px; }
 
   /* Map: subtract bottom nav height */
-  #map-wrap { height: calc(100dvh - var(--topbar-h) - 54px - env(safe-area-inset-bottom)); }
+  #map-wrap { height: calc(100dvh - var(--topbar-h) - 64px - env(safe-area-inset-bottom)); }
 
   /* Live job adjustments */
   .live-timer-bar { padding: 12px 14px; }
@@ -1047,7 +1059,7 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 
 @media (max-width: 400px) {
   .grid-3 { grid-template-columns: 1fr; }
-  .page-content { padding: 10px; padding-bottom: calc(54px + env(safe-area-inset-bottom) + 10px); }
+  .page-content { padding: 10px; padding-bottom: calc(64px + env(safe-area-inset-bottom) + 10px); }
 }
 
 /* ═══════════════════════════════════════════════
@@ -1106,6 +1118,8 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   text-align: center;
 }
 #login-form .form-group { margin-bottom: 14px; }
+/* Login inputs always 16px to prevent iOS zoom */
+#login-form .form-input { font-size: 16px; }
 @media (max-width: 420px) {
   .login-card { padding: 32px 20px 28px; }
 }
