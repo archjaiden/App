@@ -395,8 +395,18 @@ function updateBadges() {
    DASHBOARD
 ═══════════════════════════════════════════════════════ */
 function renderDashboard(el) {
+  var s=getSettings();
+  var firstName=(s.technicianName||'').split(' ')[0]||'there';
+  var hour=new Date().getHours();
+  var greeting=hour<12?'Good morning':hour<17?'Good afternoon':'Good evening';
+  var now=new Date();
+  var dayName=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
+  var monthName=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()];
+  var dateStr=dayName+', '+now.getDate()+' '+monthName;
+
   document.getElementById('page-title').textContent='Dashboard';
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-primary" id="dash-new">'+svgIcon('M12 4.5v15m7.5-7.5h-15')+' New Job</button>';
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-primary" id="dash-new" style="gap:6px">'+icon('plus',14)+' New Job</button>';
+
   var jobs=getJobs(), clients=getClients();
   var today=todayISO();
   var tmrw=(function(){var d=new Date();d.setDate(d.getDate()+1);return d.toISOString().slice(0,10);})();
@@ -406,74 +416,87 @@ function renderDashboard(el) {
   var completedN=jobs.filter(function(j){return j.status==='completed';}).length;
   var pendingN=jobs.filter(function(j){return j.status==='pending';}).length;
 
-  function jobCard(j,highlight){
-    var types=(j.jobTypes||[]).slice(0,2).map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('');
-    if((j.jobTypes||[]).length>2)types+='<span class="tag">+'+(j.jobTypes.length-2)+'</span>';
+  function jobCard(j, highlight) {
+    var typeStr=(j.jobTypes||[]).slice(0,2).join(' · ');
+    if((j.jobTypes||[]).length>2)typeStr+=' +'+((j.jobTypes.length-2)+' more');
+    var addr=j.clientAddress?'<div class="djc-meta">'+icon('pin',12)+' <span>'+esc(j.clientAddress)+'</span></div>':'';
+    var time=j.timeIn?'<div class="djc-meta">'+icon('clock',12)+' <span>'+fmtTime(j.timeIn)+(j.timeOut?' — '+fmtTime(j.timeOut):'')+(j.duration?' · '+esc(j.duration):'')+'</span></div>':'';
     return '<div class="dash-job-card'+(highlight?' active-card':'')+'" data-id="'+j.id+'">'+
-      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">'+
-        '<span class="job-num">'+esc(j.jobNumber)+'</span>'+statusBadge(j.status)+
+      '<div class="djc-header">'+
+        '<div>'+
+          '<div class="djc-client">'+esc(j.clientName||'—')+'</div>'+
+          (typeStr?'<div class="djc-type">'+esc(typeStr)+'</div>':'')+
+        '</div>'+
+        statusBadge(j.status)+
       '</div>'+
-      '<div style="font-weight:700;font-size:15px;margin-bottom:6px">'+esc(j.clientName||'—')+'</div>'+
-      (types?'<div class="tag-strip" style="margin-bottom:10px">'+types+'</div>':'')+
-      (j.timeIn?'<div style="font-size:12px;color:var(--text-2);margin-bottom:10px">⏰ '+fmtTime(j.timeIn)+(j.timeOut?' → '+fmtTime(j.timeOut):'')+(j.duration?' · <strong>'+esc(j.duration)+'</strong>':'')+'</div>':'')+
-      '<button class="btn btn-primary btn-sm go-live-dash" data-id="'+j.id+'" style="font-size:12px;gap:5px">'+icon('play',12)+' Go Live</button>'+
+      '<div class="djc-details">'+time+addr+'</div>'+
+      '<div class="djc-footer">'+
+        '<span class="djc-num">'+esc(j.jobNumber)+'</span>'+
+        '<button class="btn btn-primary btn-sm go-live-dash" data-id="'+j.id+'" style="gap:5px">'+icon('play',13)+' Go Live</button>'+
+      '</div>'+
     '</div>';
   }
 
-  var leftCol='';
+  var jobsSection='';
   if(active.length){
-    leftCol+='<div class="section-title" style="color:var(--orange)">Active Now</div>'+
-      '<div class="dash-job-grid mb-16">'+active.map(function(j){return jobCard(j,true);}).join('')+'</div>';
+    jobsSection+='<div class="dash-section-hd"><span class="dash-section-hd-dot" style="background:var(--orange)"></span>Active Now</div>'+
+      '<div class="dash-job-grid">'+active.map(function(j){return jobCard(j,true);}).join('')+'</div>';
   }
   if(todayPending.length){
-    leftCol+='<div class="section-title">Today</div>'+
-      '<div class="dash-job-grid mb-16">'+todayPending.map(function(j){return jobCard(j,false);}).join('')+'</div>';
+    jobsSection+='<div class="dash-section-hd"><span class="dash-section-hd-dot" style="background:var(--accent)"></span>Today</div>'+
+      '<div class="dash-job-grid">'+todayPending.map(function(j){return jobCard(j,false);}).join('')+'</div>';
   }
   if(tomorrowJobs.length){
-    leftCol+='<div class="section-title">Tomorrow</div>'+
-      '<div class="dash-job-grid mb-16">'+tomorrowJobs.map(function(j){return jobCard(j,false);}).join('')+'</div>';
+    jobsSection+='<div class="dash-section-hd"><span class="dash-section-hd-dot" style="background:var(--text-3)"></span>Tomorrow</div>'+
+      '<div class="dash-job-grid">'+tomorrowJobs.map(function(j){return jobCard(j,false);}).join('')+'</div>';
   }
-  if(!leftCol){
-    leftCol='<div class="empty-state" style="padding:48px 0">'+
+  if(!jobsSection){
+    jobsSection='<div class="empty-state" style="padding:40px 0">'+
       '<div class="empty-state-icon">'+icon('check_c',40)+'</div>'+
       '<div class="empty-state-title">All clear!</div>'+
-      '<div class="empty-state-desc">No active jobs or upcoming work for today or tomorrow.</div>'+
+      '<div class="empty-state-desc">No active or upcoming jobs for today or tomorrow.</div>'+
     '</div>';
   }
 
   var recentDone=jobs.filter(function(j){return j.status==='completed';})
-    .sort(function(a,b){return(b.updatedAt||'').localeCompare(a.updatedAt||'');}).slice(0,5);
+    .sort(function(a,b){return(b.updatedAt||'').localeCompare(a.updatedAt||'');}).slice(0,4);
+
+  var recentHtml=recentDone.length?
+    '<div class="card"><div class="card-header"><span class="card-title">Recent Completions</span></div>'+
+    '<div class="card-body" style="padding:0">'+
+    recentDone.map(function(j,i){
+      return '<div class="dash-recent-row'+(i<recentDone.length-1?' dash-recent-divider':'')+'">'+
+        '<div>'+
+          '<div class="dash-recent-client">'+esc(j.clientName||'—')+'</div>'+
+          '<div class="dash-recent-meta">'+esc(j.jobNumber)+' · '+fmtDate(j.date)+'</div>'+
+        '</div>'+
+        (j.duration?'<span class="dash-recent-dur">'+esc(j.duration)+'</span>':statusBadge(j.status))+
+      '</div>';
+    }).join('')+
+    '</div></div>':'';
 
   el.innerHTML=
-    '<div class="grid grid-4 mb-24">'+
+    '<div class="dash-greeting">'+
+      '<div class="dash-greeting-text">'+greeting+', '+esc(firstName)+'</div>'+
+      '<div class="dash-greeting-date">'+esc(dateStr)+'</div>'+
+    '</div>'+
+    '<div class="dash-stats">'+
       dStatCard('In Progress',active.length,'var(--orange)','rgba(255,159,10,.12)',icon('refresh',18))+
       dStatCard('Pending',pendingN,'var(--purple)','rgba(191,90,242,.12)',icon('clock',18))+
       dStatCard('Completed',completedN,'var(--green)','rgba(48,209,88,.12)',icon('check_c',18))+
       dStatCard('Clients',clients.length,'var(--teal)','rgba(90,200,245,.12)',icon('users',18))+
     '</div>'+
-    '<div class="grid grid-2" style="align-items:start;gap:20px">'+
-      '<div>'+leftCol+'</div>'+
-      '<div style="display:flex;flex-direction:column;gap:16px">'+
+    '<div class="dash-body">'+
+      '<div class="dash-main">'+jobsSection+'</div>'+
+      '<div class="dash-side" id="dash-side">'+
         '<div class="card"><div class="card-header"><span class="card-title">Quick Actions</span></div>'+
-          '<div class="card-body" style="display:flex;flex-direction:column;gap:8px">'+
-          '<button class="btn btn-secondary w-full" id="qa-job" style="justify-content:flex-start;gap:8px">'+icon('plus',14)+'  New Job</button>'+
-          '<button class="btn btn-secondary w-full" id="qa-cl"  style="justify-content:flex-start;gap:8px">'+icon('user_add',14)+'  Add Client</button>'+
-          '<button class="btn btn-secondary w-full" id="qa-all" style="justify-content:flex-start;gap:8px">'+icon('clipboard',14)+'  All Jobs</button>'+
-          '<button class="btn btn-secondary w-full" id="qa-map" style="justify-content:flex-start;gap:8px">'+icon('map',14)+'  Open Map</button>'+
+          '<div class="card-body dash-qa">'+
+          '<button class="btn btn-secondary w-full" id="qa-job" style="justify-content:flex-start;gap:10px">'+icon('plus',16)+' New Job</button>'+
+          '<button class="btn btn-secondary w-full" id="qa-cl"  style="justify-content:flex-start;gap:10px">'+icon('user_add',16)+' Add Client</button>'+
+          '<button class="btn btn-secondary w-full" id="qa-all" style="justify-content:flex-start;gap:10px">'+icon('clipboard',16)+' All Jobs</button>'+
+          '<button class="btn btn-secondary w-full" id="qa-map" style="justify-content:flex-start;gap:10px">'+icon('map',16)+' Open Map</button>'+
           '</div></div>'+
-        (recentDone.length?
-          '<div class="card"><div class="card-header"><span class="card-title">Recent Completions</span></div>'+
-          '<div class="card-body" style="padding-top:4px">'+
-          recentDone.map(function(j){
-            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">'+
-              '<div>'+
-                '<div style="font-size:13px;font-weight:600">'+esc(j.clientName||'—')+'</div>'+
-                '<div style="font-size:11px;color:var(--text-2)">'+esc(j.jobNumber)+' · '+fmtDate(j.date)+'</div>'+
-              '</div>'+
-              (j.duration?'<span style="font-size:11.5px;color:var(--green);font-weight:600">'+esc(j.duration)+'</span>':'')+
-            '</div>';
-          }).join('')+
-          '</div></div>' : '')+
+        recentHtml+
       '</div>'+
     '</div>';
 

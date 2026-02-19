@@ -865,6 +865,143 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 }
 
 /* ═══════════════════════════════════════════════
+   DASHBOARD LAYOUT
+═══════════════════════════════════════════════ */
+.dash-greeting {
+  margin-bottom: 20px;
+}
+.dash-greeting-text {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+  line-height: 1.1;
+}
+.dash-greeting-date {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-top: 4px;
+}
+
+/* 4-col on desktop, 2×2 on mobile */
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+/* Two-column main layout */
+.dash-body {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  align-items: start;
+}
+.dash-main { display: flex; flex-direction: column; gap: 4px; }
+.dash-side  { display: flex; flex-direction: column; gap: 16px; }
+
+/* Section headers */
+.dash-section-hd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  padding: 16px 0 8px;
+}
+.dash-section-hd:first-child { padding-top: 0; }
+.dash-section-hd-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Job card internals */
+.djc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.djc-client {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.djc-type {
+  font-size: 12px;
+  color: var(--text-2);
+  margin-top: 3px;
+}
+.djc-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+.djc-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.djc-meta svg { flex-shrink: 0; opacity: .6; }
+.djc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.djc-num {
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .3px;
+}
+
+/* Recent completions list */
+.dash-recent-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  gap: 12px;
+}
+.dash-recent-divider { border-bottom: 1px solid var(--border); }
+.dash-recent-client {
+  font-size: 13px;
+  font-weight: 600;
+}
+.dash-recent-meta {
+  font-size: 11px;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+.dash-recent-dur {
+  font-size: 12px;
+  color: var(--text-2);
+  background: var(--bg-3);
+  border-radius: var(--r-xs);
+  padding: 3px 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Quick actions card body */
+.dash-qa {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ═══════════════════════════════════════════════
    LIVE JOB MODE
 ═══════════════════════════════════════════════ */
 .live-timer-bar {
@@ -1041,6 +1178,12 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   /* Stat cards */
   .stat-value { font-size: 24px; }
   .stat-card  { padding: 14px; }
+
+  /* Dashboard */
+  .dash-greeting-text { font-size: 22px; }
+  .dash-stats { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .dash-body  { grid-template-columns: 1fr; }
+  .dash-side  { display: none; }
 
   /* Filter row */
   .filter-row { flex-wrap: wrap; }
