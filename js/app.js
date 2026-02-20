@@ -536,22 +536,28 @@ function renderClients(el, params) {
 function clRenderTable(wrap,q){
   var clients=getClients().filter(function(c){return !q||(c.name+' '+c.suburb+' '+c.contact+' '+c.phone).toLowerCase().includes(q.toLowerCase());});
   if(!clients.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">'+icon('users',40)+'</div><div class="empty-state-title">'+(q?'No results':'No clients yet')+'</div></div>';return;}
-  wrap.innerHTML='<div class="table-wrap"><table><thead><tr><th>Client</th><th>Contact</th><th>Phone</th><th>Suburb</th><th>Jobs</th><th>Added</th><th></th></tr></thead><tbody>'+
+  wrap.innerHTML='<div class="list-cards">'+
     clients.map(function(c){
       var jc=getJobsForClient(c.id).length;
       var tags=(c.tags||[]).map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('');
-      return '<tr data-id="'+c.id+'" class="cl-row">'+
-        '<td><div style="font-weight:600">'+esc(c.name)+'</div>'+(tags?'<div class="tag-strip mt-4">'+tags+'</div>':'')+' </td>'+
-        '<td>'+esc(c.contact||'—')+'</td><td style="white-space:nowrap">'+esc(c.phone||'—')+'</td>'+
-        '<td>'+esc(c.suburb||'—')+'</td>'+
-        '<td><span class="badge '+(jc?'badge-blue':'badge-gray')+'">'+jc+'</span></td>'+
-        '<td class="text-muted text-sm">'+fmtDate(c.createdAt)+'</td>'+
-        '<td style="text-align:right;white-space:nowrap">'+
-          '<button class="btn btn-ghost btn-icon btn-sm cl-edit" data-id="'+c.id+'">'+icon('pencil',14)+'</button>'+
-          '<button class="btn btn-ghost btn-icon btn-sm cl-del"  data-id="'+c.id+'">'+icon('trash',14)+'</button>'+
-        '</td></tr>';
-    }).join('')+
-    '</tbody></table></div>';
+      var sub=[c.suburb,c.postcode].filter(Boolean).join(' ');
+      return '<div class="list-card cl-row" data-id="'+c.id+'">'+
+        '<div class="lc-header">'+
+          '<div class="lc-primary">'+esc(c.name)+'</div>'+
+          '<span class="badge '+(jc?'badge-blue':'badge-gray')+'" style="flex-shrink:0">'+jc+' job'+(jc!==1?'s':'')+'</span>'+
+        '</div>'+
+        (c.contact||c.phone?'<div class="lc-secondary">'+[c.contact,c.phone].filter(Boolean).map(esc).join(' · ')+'</div>':'')+
+        (sub?'<div class="lc-meta">'+icon('pin',11)+' '+esc(sub)+'</div>':'')+
+        (tags?'<div class="tag-strip mt-4">'+tags+'</div>':'')+
+        '<div class="lc-footer">'+
+          '<span class="lc-date">'+fmtDate(c.createdAt)+'</span>'+
+          '<div class="lc-actions">'+
+            '<button class="btn btn-ghost btn-icon btn-sm cl-edit" data-id="'+c.id+'">'+icon('pencil',14)+'</button>'+
+            '<button class="btn btn-ghost btn-icon btn-sm cl-del"  data-id="'+c.id+'">'+icon('trash',14)+'</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('')+'</div>';
   function refresh(){clRenderTable(wrap,document.getElementById('cl-search')?document.getElementById('cl-search').value:'');}
   wrap.querySelectorAll('.cl-row').forEach(function(row){row.addEventListener('click',function(e){if(e.target.closest('button'))return;navigate('jobs',{clientId:row.dataset.id});});});
   wrap.querySelectorAll('.cl-edit').forEach(function(btn){btn.addEventListener('click',function(e){e.stopPropagation();clOpenModal(refresh,btn.dataset.id);});});
@@ -644,22 +650,29 @@ function jbRenderTable(wrap){
   if(clientId)jobs=jobs.filter(function(j){return j.clientId===clientId;});
   if(q){var ql=q.toLowerCase();jobs=jobs.filter(function(j){return(j.jobNumber+' '+j.clientName+' '+j.notes+' '+(j.jobTypes||[]).join(' ')).toLowerCase().includes(ql);});}
   if(!jobs.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">'+icon('clipboard',40)+'</div><div class="empty-state-title">'+(q||status||priority||clientId?'No results':'No jobs yet')+'</div></div>';return;}
-  wrap.innerHTML='<div class="table-wrap"><table><thead><tr><th>#</th><th>Date</th><th>Client</th><th>Job Types</th><th>Status</th><th>Priority</th><th>Time</th><th></th></tr></thead><tbody>'+
+  wrap.innerHTML='<div class="list-cards">'+
     jobs.map(function(j){
-      var types=(j.jobTypes||[]).slice(0,3).map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('');
-      if((j.jobTypes||[]).length>3)types+='<span class="tag">+'+(j.jobTypes.length-3)+'</span>';
-      return '<tr data-id="'+j.id+'" class="jb-row">'+
-        '<td><span class="job-num">'+esc(j.jobNumber)+'</span></td>'+
-        '<td style="white-space:nowrap">'+fmtDate(j.date)+'</td>'+
-        '<td style="max-width:160px" class="truncate">'+esc(j.clientName||'—')+'</td>'+
-        '<td style="max-width:220px"><div class="tag-strip">'+types+'</div></td>'+
-        '<td>'+statusBadge(j.status)+'</td><td>'+priorityHtml(j.priority)+'</td>'+
-        '<td class="text-muted text-sm" style="white-space:nowrap">'+(j.timeIn?fmtTime(j.timeIn):'—')+(j.timeOut?' → '+fmtTime(j.timeOut):'')+' </td>'+
-        '<td style="text-align:right;white-space:nowrap">'+
-          '<button class="btn btn-ghost btn-icon btn-sm jb-edit" data-id="'+j.id+'">'+icon('pencil',14)+'</button>'+
-          '<button class="btn btn-ghost btn-icon btn-sm jb-del"  data-id="'+j.id+'">'+icon('trash',14)+'</button>'+
-        '</td></tr>';
-    }).join('')+'</tbody></table></div>';
+      var types=(j.jobTypes||[]).slice(0,4).map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('');
+      if((j.jobTypes||[]).length>4)types+='<span class="tag">+'+(j.jobTypes.length-4)+'</span>';
+      return '<div class="list-card jb-row" data-id="'+j.id+'">'+
+        '<div class="lc-header">'+
+          '<span class="job-num">'+esc(j.jobNumber)+'</span>'+
+          statusBadge(j.status)+
+          '<span style="flex:1"></span>'+
+          priorityHtml(j.priority)+
+        '</div>'+
+        '<div class="lc-primary">'+esc(j.clientName||'—')+'</div>'+
+        (types?'<div class="tag-strip" style="margin-top:6px">'+types+'</div>':'')+
+        '<div class="lc-footer">'+
+          '<span class="lc-meta">'+icon('calendar',11)+' '+fmtDate(j.date)+'</span>'+
+          (j.timeIn?'<span class="lc-meta">'+icon('clock',11)+' '+fmtTime(j.timeIn)+(j.timeOut?' → '+fmtTime(j.timeOut):'')+'</span>':'')+
+          '<div class="lc-actions">'+
+            '<button class="btn btn-ghost btn-icon btn-sm jb-edit" data-id="'+j.id+'">'+icon('pencil',14)+'</button>'+
+            '<button class="btn btn-ghost btn-icon btn-sm jb-del"  data-id="'+j.id+'">'+icon('trash',14)+'</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('')+'</div>';
   wrap.querySelectorAll('.jb-row').forEach(function(row){row.addEventListener('click',function(e){if(e.target.closest('button'))return;openJobDetail(row.dataset.id);});});
   wrap.querySelectorAll('.jb-edit').forEach(function(btn){btn.addEventListener('click',function(e){e.stopPropagation();navigate('new-job',{editId:btn.dataset.id});});});
   wrap.querySelectorAll('.jb-del').forEach(function(btn){btn.addEventListener('click',async function(e){
