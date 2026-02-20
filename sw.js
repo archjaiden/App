@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'techdoc-v10';
+const CACHE = 'techdoc-v11';
 
 const ASSETS = [
   './',

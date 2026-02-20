@@ -235,10 +235,10 @@ function openModal(title, bodyHTML, footerHTML, extraClass) {
   document.body.appendChild(ov); return ov;
 }
 function closeModal() { var el=document.getElementById('modal-overlay'); if(el)el.remove(); }
-function confirmDlg(msg) {
+function confirmDlg(msg,confirmLabel) {
   return new Promise(function(resolve) {
     var ov=openModal('Confirm','<p style="font-size:14px;color:var(--text-2);line-height:1.6">'+esc(msg)+'</p>',
-      '<button class="btn btn-secondary" id="conf-no">Cancel</button><button class="btn btn-danger" id="conf-yes">Delete</button>');
+      '<button class="btn btn-secondary" id="conf-no">Cancel</button><button class="btn btn-danger" id="conf-yes">'+(confirmLabel||'Delete')+'</button>');
     ov.querySelector('#conf-yes').addEventListener('click',function(){closeModal();resolve(true);});
     ov.querySelector('#conf-no').addEventListener('click',function(){closeModal();resolve(false);});
   });
@@ -976,7 +976,7 @@ function renderLiveJob(el, params) {
 
   /* ── Complete ───────────────────────────────────── */
   document.getElementById('lj-done').addEventListener('click',async function(){
-    if(!await confirmDlg('Mark this job as completed? The time will be recorded.'))return;
+    if(!await confirmDlg('Mark this job as completed? The time will be recorded.','Complete Job'))return;
     var now2=new Date();
     var f=getJob(j.id);
     f.status='completed';
@@ -1198,7 +1198,7 @@ function stRenderTab(){
     body.querySelector('#st-export').addEventListener('click',stExport);
     body.querySelector('#st-import').addEventListener('click',stImport);
     body.querySelector('#st-clear').addEventListener('click',async function(){
-      if(!await confirmDlg('Clear ALL data? This deletes every job, client and setting. Cannot be undone.'))return;
+      if(!await confirmDlg('Clear ALL data? This deletes every job, client and setting. Cannot be undone.','Clear All'))return;
       clearAll();toast('All data cleared','info');updateBadges();navigate('dashboard');
     });
   }
