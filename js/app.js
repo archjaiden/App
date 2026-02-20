@@ -235,6 +235,37 @@ function openModal(title, bodyHTML, footerHTML, extraClass) {
   document.body.appendChild(ov); return ov;
 }
 function closeModal() { var el=document.getElementById('modal-overlay'); if(el)el.remove(); }
+
+function openLightbox(srcs,startIdx) {
+  var cur=startIdx||0, total=srcs.length;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;z-index:9000';
+  var img=document.createElement('img');
+  img.style.cssText='max-width:92vw;max-height:84vh;border-radius:8px;object-fit:contain;user-select:none;pointer-events:none;display:block';
+  var counter=document.createElement('div');
+  counter.style.cssText='position:absolute;top:18px;left:50%;transform:translateX(-50%);font-size:13px;color:rgba(255,255,255,.5);white-space:nowrap;pointer-events:none';
+  var btnStyle='position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:none;color:#fff;font-size:32px;line-height:1;width:48px;height:48px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation';
+  var prevBtn=document.createElement('button'); prevBtn.innerHTML='&#8249;'; prevBtn.style.cssText=btnStyle+';left:14px';
+  var nextBtn=document.createElement('button'); nextBtn.innerHTML='&#8250;'; nextBtn.style.cssText=btnStyle+';right:14px';
+  var closeBtn=document.createElement('button'); closeBtn.innerHTML='&#10005;';
+  closeBtn.style.cssText='position:absolute;top:14px;right:14px;background:rgba(255,255,255,.15);backdrop-filter:blur(8px);border:none;color:#fff;font-size:16px;width:38px;height:38px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation';
+  ov.appendChild(img); ov.appendChild(counter); ov.appendChild(closeBtn);
+  if(total>1){ov.appendChild(prevBtn);ov.appendChild(nextBtn);}
+  document.body.appendChild(ov);
+  function show(){img.src=srcs[cur];counter.textContent=total>1?(cur+1)+' / '+total:'';}
+  show();
+  prevBtn.addEventListener('click',function(e){e.stopPropagation();cur=(cur-1+total)%total;show();});
+  nextBtn.addEventListener('click',function(e){e.stopPropagation();cur=(cur+1)%total;show();});
+  closeBtn.addEventListener('click',function(){ov.remove();});
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+  var tx=0;
+  ov.addEventListener('touchstart',function(e){tx=e.touches[0].clientX;},{passive:true});
+  ov.addEventListener('touchend',function(e){
+    var dx=e.changedTouches[0].clientX-tx;
+    if(Math.abs(dx)>44){cur=dx<0?(cur+1)%total:(cur-1+total)%total;show();}
+  });
+}
+
 function confirmDlg(msg,confirmLabel) {
   return new Promise(function(resolve) {
     var ov=openModal('Confirm','<p style="font-size:14px;color:var(--text-2);line-height:1.6">'+esc(msg)+'</p>',
@@ -711,13 +742,9 @@ function openJobDetail(id){
   document.getElementById('jd-close').addEventListener('click',closeModal);
   document.getElementById('jd-edit').addEventListener('click',function(){closeModal();navigate('new-job',{editId:j.id});});
   if(canLive)document.getElementById('jd-live').addEventListener('click',function(){closeModal();navigate('live-job',{jobId:j.id});});
+  var photoSrcs=(j.photos||[]).map(function(p){return p.dataUrl;});
   document.querySelectorAll('.jd-photos .photo-thumb').forEach(function(th){
-    th.addEventListener('click',function(){
-      var ov=document.createElement('div');
-      ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:9000;cursor:zoom-out';
-      ov.innerHTML='<img src="'+th.dataset.src+'" style="max-width:92vw;max-height:90vh;border-radius:8px;object-fit:contain">';
-      ov.addEventListener('click',function(){ov.remove();}); document.body.appendChild(ov);
-    });
+    th.addEventListener('click',function(){openLightbox(photoSrcs,parseInt(th.dataset.idx));});
   });
 }
 
@@ -1124,12 +1151,10 @@ function docRenderTable(wrap,q,typeFilter){
       '</div></div></div>';
   }
   wrap.innerHTML=html;
-  wrap.querySelectorAll('.doc-ph').forEach(function(th){
-    th.addEventListener('click',function(){
-      var ov=document.createElement('div');ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:9000;cursor:zoom-out;flex-direction:column;gap:10px';
-      ov.innerHTML='<img src="'+th.dataset.src+'" style="max-width:92vw;max-height:84vh;border-radius:8px;object-fit:contain"><div style="font-size:12px;color:rgba(255,255,255,.5)">'+th.title+'</div>';
-      ov.addEventListener('click',function(){ov.remove();});document.body.appendChild(ov);
-    });
+  var allDocPh=Array.from(wrap.querySelectorAll('.doc-ph'));
+  var docSrcs=allDocPh.map(function(el){return el.dataset.src;});
+  allDocPh.forEach(function(th,i){
+    th.addEventListener('click',function(){openLightbox(docSrcs,i);});
   });
   wrap.querySelectorAll('.doc-row').forEach(function(row){row.addEventListener('click',function(e){if(e.target.closest('a'))return;navigate('jobs',{jobId:row.dataset.job});});});
 }
