@@ -228,6 +228,7 @@ input, select, textarea { font-family: var(--font); }
   flex: 1;
   overflow-y: auto;
   padding: 24px;
+  -webkit-overflow-scrolling: touch;
 }
 .page-content::-webkit-scrollbar { width: 5px; }
 .page-content::-webkit-scrollbar-track { background: transparent; }
@@ -1151,7 +1152,7 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   /* Page content: pad below the 49px tab bar + 34px home indicator */
   .page-content {
     padding: 16px;
-    padding-bottom: calc(49px + env(safe-area-inset-bottom) + 16px);
+    padding-bottom: calc(49px + env(safe-area-inset-bottom) + 28px);
   }
 
   /* Topbar: fixed height, no wrapping — keeps height calcs predictable */
@@ -1206,7 +1207,7 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 
 @media (max-width: 400px) {
   .grid-3       { grid-template-columns: 1fr; }
-  .page-content { padding: 12px; padding-bottom: calc(49px + env(safe-area-inset-bottom) + 12px); }
+  .page-content { padding: 12px; padding-bottom: calc(49px + env(safe-area-inset-bottom) + 24px); }
 }
 
 /* ═══════════════════════════════════════════════
