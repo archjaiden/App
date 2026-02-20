@@ -1149,10 +1149,11 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   .sidebar    { display: none !important; }
   :root       { --sidebar-w: 0px; }
 
-  /* Page content: pad below the 49px tab bar + 34px home indicator */
+  /* Page content: pad below the 49px tab bar + 34px home indicator.
+     Extra 56px so iOS rubber-band bounce doesn't hide the last element. */
   .page-content {
     padding: 16px;
-    padding-bottom: calc(49px + env(safe-area-inset-bottom) + 28px);
+    padding-bottom: calc(49px + env(safe-area-inset-bottom) + 56px);
   }
 
   /* Topbar: fixed height, no wrapping — keeps height calcs predictable */
@@ -1207,7 +1208,7 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 
 @media (max-width: 400px) {
   .grid-3       { grid-template-columns: 1fr; }
-  .page-content { padding: 12px; padding-bottom: calc(49px + env(safe-area-inset-bottom) + 24px); }
+  .page-content { padding: 12px; padding-bottom: calc(49px + env(safe-area-inset-bottom) + 56px); }
 }
 
 /* ═══════════════════════════════════════════════
