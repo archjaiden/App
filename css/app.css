@@ -690,7 +690,58 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
 #map-wrap {
   height: calc(100vh - var(--topbar-h));
   display: flex;
+  position: relative;
 }
+
+/* ── Map job sheet (slides up on marker/job tap) ── */
+.map-job-sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: var(--bg-1);
+  border-top: 1px solid var(--border);
+  border-radius: var(--r-xl) var(--r-xl) 0 0;
+  max-height: 58%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: translateY(100%);
+  transition: transform .32s cubic-bezier(0.32,0.72,0,1);
+  z-index: 800;
+  box-shadow: 0 -8px 40px rgba(0,0,0,.5);
+}
+.map-job-sheet.open { transform: translateY(0); }
+.mjs-handle {
+  width: 36px; height: 4px;
+  background: rgba(255,255,255,.18);
+  border-radius: 2px;
+  margin: 10px auto 0;
+}
+.mjs-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 12px 16px 14px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0;
+  background: var(--bg-1);
+  z-index: 1;
+}
+.mjs-name { font-size: 15px; font-weight: 700; }
+.mjs-addr { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+.mjs-jobs { padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.mjs-job-card {
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background var(--t);
+}
+.mjs-job-card:hover { background: var(--bg-3); }
+.mjs-job-top { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
+.mjs-job-types { font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
+.mjs-job-meta { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--text-3); }
+.mjs-job-meta svg { opacity: .6; }
+.mjs-empty { padding: 20px; text-align: center; color: var(--text-3); font-size: 13px; }
 #map { flex: 1; }
 
 /* Dark popup overrides */
