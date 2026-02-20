@@ -1032,10 +1032,8 @@ function renderMap(el){
     '<div style="padding:14px 16px;border-bottom:1px solid var(--border)"><div style="font-weight:700;font-size:13px;margin-bottom:6px">Jobs</div>'+
     '<input class="search-input" id="map-search" placeholder="Filter jobs…" style="width:100%;border-radius:6px"></div>'+
     '<div id="map-client-list" style="overflow-y:auto;flex:1;padding:8px"></div></div>'+
-    '<div id="map-job-sheet" class="map-job-sheet">'+
-      '<div class="mjs-handle"></div>'+
-      '<div id="mjs-content"></div>'+
-    '</div></div>';
+    '<button class="map-list-fab" id="map-list-fab">'+icon('clipboard',16)+' Jobs List</button>'+
+    '</div>';
   cleanupMap();
   _mapInstance=L.map('map',{center:[-28.5,121.6],zoom:5});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
@@ -1045,6 +1043,7 @@ function renderMap(el){
   setTimeout(function(){if(_mapInstance)_mapInstance.invalidateSize();},120);
   document.getElementById('map-refresh-btn').addEventListener('click',mapRefreshMarkers);
   document.getElementById('map-search').addEventListener('input',function(e){mapRenderList(e.target.value);});
+  document.getElementById('map-list-fab').addEventListener('click',function(){showMapJobSheet(null);});
 }
 function mapRefreshMarkers(){
   _mapMarkers.forEach(function(m){m.remove();}); _mapMarkers=[];
@@ -1060,7 +1059,7 @@ function mapRefreshMarkers(){
     (function(client){
       marker.on('click',function(){
         _mapInstance.flyTo([client.lat,client.lng],16,{duration:1});
-        setTimeout(function(){showMapJobSheet(client);},800);
+        showMapJobSheet(client);
       });
     })(c);
     _mapMarkers.push(marker);
@@ -1069,35 +1068,35 @@ function mapRefreshMarkers(){
   mapRenderList('');
 }
 function showMapJobSheet(client){
-  var sheet=document.getElementById('map-job-sheet');
-  var content=document.getElementById('mjs-content');
-  if(!sheet||!content)return;
-  var jobs=getJobsForClient(client.id);
-  content.innerHTML=
-    '<div class="mjs-header">'+
-      '<div>'+
-        '<div class="mjs-name">'+esc(client.name)+'</div>'+
-        (client.address?'<div class="mjs-addr">'+esc(client.address)+(client.suburb?', '+esc(client.suburb):'')+'</div>':'')+
-      '</div>'+
-      '<button class="btn btn-ghost btn-icon mjs-close">✕</button>'+
-    '</div>'+
+  var old=document.getElementById('map-job-sheet');if(old)old.remove();
+  var jobs=client?getJobsForClient(client.id):getJobs().filter(function(j){return j.status!=='cancelled';});
+  jobs.sort(function(a,b){var o={'in-progress':0,pending:1,completed:2};return(o[a.status]||2)-(o[b.status]||2);});
+  var titleHtml=client?
+    '<div class="mjs-name">'+esc(client.name)+'</div>'+(client.address?'<div class="mjs-addr">'+esc(client.address)+(client.suburb?', '+esc(client.suburb):'')+'</div>':''):
+    '<div class="mjs-name">All Jobs</div>';
+  var sheet=document.createElement('div');
+  sheet.id='map-job-sheet'; sheet.className='map-job-sheet';
+  sheet.innerHTML=
+    '<div class="mjs-handle"></div>'+
+    '<div class="mjs-header"><div>'+titleHtml+'</div>'+
+      '<button class="btn btn-ghost btn-icon mjs-close">✕</button></div>'+
     '<div class="mjs-jobs">'+
     (jobs.length?jobs.map(function(j){
       var types=(j.jobTypes||[]).slice(0,2).join(' · ');
       return '<div class="mjs-job-card" data-id="'+j.id+'">'+
-        '<div class="mjs-job-top">'+
-          '<span class="job-num">'+esc(j.jobNumber)+'</span>'+
-          statusBadge(j.status)+
-        '</div>'+
+        '<div class="mjs-job-top"><span class="job-num">'+esc(j.jobNumber)+'</span>'+statusBadge(j.status)+'</div>'+
+        (!client?'<div class="mjs-job-client">'+esc(j.clientName||'—')+'</div>':'')+
         (types?'<div class="mjs-job-types">'+esc(types)+'</div>':'')+
-        '<div class="mjs-job-meta">'+icon('calendar',11)+' '+fmtDate(j.date)+(j.timeIn?' &nbsp;'+icon('clock',11)+' '+fmtTime(j.timeIn):'')+'</div>'+
+        '<div class="mjs-job-meta">'+fmtDate(j.date)+(j.timeIn?' · '+fmtTime(j.timeIn):'')+'</div>'+
       '</div>';
-    }).join(''):'<div class="mjs-empty">No jobs for this client</div>')+
+    }).join(''):'<div class="mjs-empty">No jobs</div>')+
     '</div>';
-  sheet.classList.add('open');
-  content.querySelector('.mjs-close').addEventListener('click',function(){sheet.classList.remove('open');});
-  content.querySelectorAll('.mjs-job-card').forEach(function(card){
-    card.addEventListener('click',function(){sheet.classList.remove('open');openJobDetail(card.dataset.id);});
+  document.body.appendChild(sheet);
+  requestAnimationFrame(function(){requestAnimationFrame(function(){sheet.classList.add('open');});});
+  function close(){sheet.classList.remove('open');setTimeout(function(){sheet.remove();},350);}
+  sheet.querySelector('.mjs-close').addEventListener('click',close);
+  sheet.querySelectorAll('.mjs-job-card').forEach(function(card){
+    card.addEventListener('click',function(){close();openJobDetail(card.dataset.id);});
   });
 }
 function mapRenderList(q){
@@ -1128,9 +1127,9 @@ function mapRenderList(q){
     item.addEventListener('click',function(){
       var lat=parseFloat(item.dataset.lat),lng=parseFloat(item.dataset.lng);
       var client=clientMap[item.dataset.clientid];
-      if(lat&&lng&&_mapInstance&&client){
-        _mapInstance.flyTo([lat,lng],16,{duration:1.2});
-        setTimeout(function(){showMapJobSheet(client);},1000);
+      if(client){
+        if(lat&&lng&&_mapInstance)_mapInstance.flyTo([lat,lng],16,{duration:1});
+        showMapJobSheet(client);
       }
     });
   });
