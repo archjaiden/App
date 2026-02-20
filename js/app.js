@@ -1002,8 +1002,8 @@ function renderMap(el){
   el.style.padding='0'; el.style.overflow='hidden';
   el.innerHTML='<div id="map-wrap"><div id="map"></div>'+
     '<div id="map-panel" style="width:280px;flex-shrink:0;background:var(--bg-1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">'+
-    '<div style="padding:14px 16px;border-bottom:1px solid var(--border)"><div style="font-weight:700;font-size:13px;margin-bottom:6px">Clients in WA</div>'+
-    '<input class="search-input" id="map-search" placeholder="Filter clients…" style="width:100%;border-radius:6px"></div>'+
+    '<div style="padding:14px 16px;border-bottom:1px solid var(--border)"><div style="font-weight:700;font-size:13px;margin-bottom:6px">Jobs</div>'+
+    '<input class="search-input" id="map-search" placeholder="Filter jobs…" style="width:100%;border-radius:6px"></div>'+
     '<div id="map-client-list" style="overflow-y:auto;flex:1;padding:8px"></div></div></div>';
   cleanupMap();
   _mapInstance=L.map('map',{center:[-28.5,121.6],zoom:5});
@@ -1048,25 +1048,36 @@ function mapRefreshMarkers(){
 }
 function mapRenderList(q){
   var listEl=document.getElementById('map-client-list');if(!listEl)return;
-  var clients=getClients().filter(function(c){return !q||(c.name+' '+c.suburb).toLowerCase().includes(q.toLowerCase());});
-  listEl.innerHTML=clients.map(function(c){
-    var jc=getJobsForClient(c.id).length, hasCords=c.lat&&c.lng;
-    return '<div class="map-list-item" data-lat="'+(c.lat||'')+'" data-lng="'+(c.lng||'')+'" style="padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:.15s">'+
-      '<div style="display:flex;align-items:center;gap:8px">'+
-      '<div style="width:8px;height:8px;border-radius:50%;background:'+(hasCords?'var(--green)':'var(--text-3)')+';flex-shrink:0"></div>'+
-      '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(c.name)+'</div>'+
-      '<div style="font-size:11px;color:var(--text-2)">'+esc(c.suburb||'—')+' · '+jc+' job'+(jc!==1?'s':'')+'</div></div></div></div>';
-  }).join('')||'<div style="padding:20px;text-align:center;color:var(--text-3);font-size:13px">No clients</div>';
+  var clientMap={};getClients().forEach(function(c){clientMap[c.id]=c;});
+  var statusOrder={'in-progress':0,'pending':1,'completed':2,'cancelled':3};
+  var statusCol={'in-progress':'var(--orange)','pending':'var(--accent)','completed':'var(--green)','cancelled':'var(--text-3)'};
+  var jobs=getJobs().filter(function(j){
+    return !q||(j.clientName+' '+j.jobNumber+' '+(j.clientAddress||'')).toLowerCase().includes(q.toLowerCase());
+  }).sort(function(a,b){return(statusOrder[a.status]||2)-(statusOrder[b.status]||2);});
+  if(!jobs.length){listEl.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-3);font-size:13px">No jobs</div>';return;}
+  listEl.innerHTML=jobs.map(function(j){
+    var client=clientMap[j.clientId]||{};
+    var hasCoords=client.lat&&client.lng;
+    var dot='<div style="width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px;background:'+(hasCoords?statusCol[j.status]||'var(--text-3)':'var(--text-3)')+'"></div>';
+    return '<div class="map-list-item" data-lat="'+(client.lat||'')+'" data-lng="'+(client.lng||'')+'" style="padding:10px 12px;border-radius:8px;cursor:pointer;margin-bottom:4px;border:1px solid transparent;transition:.15s">'+
+      '<div style="display:flex;align-items:flex-start;gap:8px">'+dot+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(j.clientName||'—')+'</div>'+
+        '<div style="font-size:11px;color:var(--text-2);margin-top:1px">'+esc(j.jobNumber)+' · '+fmtDate(j.date)+'</div>'+
+        (j.clientAddress?'<div style="font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px">'+esc(j.clientAddress)+'</div>':'')+
+      '</div>'+
+      '</div></div>';
+  }).join('');
   listEl.querySelectorAll('.map-list-item').forEach(function(item){
-    item.addEventListener('mouseenter',function(){item.style.background='rgba(255,255,255,.04)';});
-    item.addEventListener('mouseleave',function(){item.style.background='';});
+    item.addEventListener('mouseenter',function(){item.style.background='rgba(255,255,255,.04)';item.style.borderColor='var(--border)';});
+    item.addEventListener('mouseleave',function(){item.style.background='';item.style.borderColor='transparent';});
     item.addEventListener('click',function(){
       var lat=parseFloat(item.dataset.lat),lng=parseFloat(item.dataset.lng);
       if(lat&&lng&&_mapInstance){
-        _mapInstance.flyTo([lat,lng],15,{duration:1});
+        _mapInstance.flyTo([lat,lng],16,{duration:1.2});
         var found=_mapMarkers.find(function(m){var ll=m.getLatLng();return Math.abs(ll.lat-lat)<.001&&Math.abs(ll.lng-lng)<.001;});
-        if(found)found.openPopup();
-      } else navigate('clients');
+        if(found)setTimeout(function(){found.openPopup();},1100);
+      }
     });
   });
 }
