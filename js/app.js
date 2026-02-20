@@ -1032,7 +1032,6 @@ function renderMap(el){
     '<div style="padding:14px 16px;border-bottom:1px solid var(--border)"><div style="font-weight:700;font-size:13px;margin-bottom:6px">Jobs</div>'+
     '<input class="search-input" id="map-search" placeholder="Filter jobs…" style="width:100%;border-radius:6px"></div>'+
     '<div id="map-client-list" style="overflow-y:auto;flex:1;padding:8px"></div></div>'+
-    '<button class="map-list-fab" id="map-list-fab">'+icon('clipboard',16)+' Jobs List</button>'+
     '</div>';
   cleanupMap();
   _mapInstance=L.map('map',{center:[-28.5,121.6],zoom:5});
@@ -1043,7 +1042,6 @@ function renderMap(el){
   setTimeout(function(){if(_mapInstance)_mapInstance.invalidateSize();},120);
   document.getElementById('map-refresh-btn').addEventListener('click',mapRefreshMarkers);
   document.getElementById('map-search').addEventListener('input',function(e){mapRenderList(e.target.value);});
-  document.getElementById('map-list-fab').addEventListener('click',function(){showMapJobSheet(null);});
 }
 function mapRefreshMarkers(){
   _mapMarkers.forEach(function(m){m.remove();}); _mapMarkers=[];

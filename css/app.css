@@ -693,20 +693,6 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   position: relative;
 }
 
-/* ── Mobile Jobs List FAB (shows on map, mobile only) ── */
-.map-list-fab {
-  display: none;
-  position: absolute;
-  bottom: 18px; left: 50%; transform: translateX(-50%);
-  background: var(--accent); color: #fff;
-  border: none; border-radius: 24px;
-  padding: 12px 22px; gap: 8px;
-  font-size: 14px; font-weight: 600;
-  cursor: pointer; z-index: 900;
-  box-shadow: 0 4px 16px rgba(10,132,255,.45);
-  white-space: nowrap; touch-action: manipulation;
-  align-items: center;
-}
 
 /* ── Map job sheet (fixed overlay, slides up from bottom) ── */
 .map-job-sheet {
@@ -1317,7 +1303,6 @@ tbody tr:hover { background: rgba(255,255,255,.03); }
   #map-wrap  { height: calc(100dvh - var(--topbar-h) - 49px - env(safe-area-inset-bottom)); }
   #map-panel { display: none !important; }
   #map       { width: 100%; }
-  .map-list-fab { display: flex; }
 
   /* Live job */
   .live-timer-bar { padding: 12px 14px; }
