@@ -340,6 +340,7 @@ function getZoneForPostcode(postcode){
   return null;
 }
 function getTodayZones(){var dow=new Date().getDay();return getZones().filter(function(z){return z.days&&z.days.indexOf(dow)>=0;});}
+function getZonesForDate(iso){var d=new Date(iso+'T00:00:00');var dow=d.getDay();return getZones().filter(function(z){return z.days&&z.days.indexOf(dow)>=0;});}
 function getClientZone(clientId){var c=getClient(clientId);return c?getZoneForPostcode(c.postcode):null;}
 function isJobInZones(job,zones){
   if(!zones||!zones.length)return false;
@@ -673,7 +674,7 @@ function _doNavigate(view,params,content){
     var v=item.dataset.view;
     item.classList.toggle('active',v===view||(v==='jobs'&&(view==='new-job'||view==='live-job')));
   });
-  var views={dashboard:renderDashboard,clients:renderClients,jobs:renderJobs,'new-job':renderNewJob,'live-job':renderLiveJob,planner:renderPlanner,map:renderMap,documents:renderDocuments,settings:renderSettings};
+  var views={dashboard:renderDashboard,clients:renderClients,jobs:renderJobs,'new-job':renderNewJob,'live-job':renderLiveJob,planner:renderPlanner,map:renderMap,documents:renderDocuments,timesheet:renderTimesheet,settings:renderSettings};
   (views[view]||renderDashboard)(content,params);
   updateBadges();
   /* Force reflow then fade in */
@@ -799,10 +800,16 @@ function renderDashboard(el) {
       zoneToggleHtml+
     '</div>'+
     '<div class="dash-stats">'+
-      dStatCard('In Progress',active.length,'var(--orange)','rgba(255,165,2,.08)',icon('refresh',18))+
-      dStatCard('Pending',pendingN,'var(--purple)','rgba(124,92,252,.08)',icon('clock',18))+
-      dStatCard('Completed',completedN,'var(--green)','rgba(46,213,115,.08)',icon('check_c',18))+
-      dStatCard('Clients',clients.length,'var(--teal)','rgba(0,184,148,.08)',icon('users',18))+
+      dStatCard('In Progress',active.length,'var(--orange)','rgba(255,165,2,.08)',icon('refresh',18),'in-progress')+
+      dStatCard('Pending',pendingN,'var(--purple)','rgba(124,92,252,.08)',icon('clock',18),'pending')+
+      dStatCard('Completed',completedN,'var(--green)','rgba(46,213,115,.08)',icon('check_c',18),'completed')+
+      dStatCard('Clients',clients.length,'var(--teal)','rgba(0,184,148,.08)',icon('users',18),'clients')+
+    '</div>'+
+    '<div class="dash-mobile-actions">'+
+      '<button class="btn btn-secondary" id="qa-m-job" style="gap:6px">'+icon('plus',14)+' New Job</button>'+
+      '<button class="btn btn-secondary" id="qa-m-cl" style="gap:6px">'+icon('user_add',14)+' Add Client</button>'+
+      '<button class="btn btn-secondary" id="qa-m-all" style="gap:6px">'+icon('clipboard',14)+' All Jobs</button>'+
+      '<button class="btn btn-secondary" id="qa-m-map" style="gap:6px">'+icon('map',14)+' Map</button>'+
     '</div>'+
     '<div class="dash-body">'+
       '<div class="dash-main">'+jobsSection+'</div>'+
@@ -823,6 +830,20 @@ function renderDashboard(el) {
   document.getElementById('qa-cl').addEventListener('click',function(){navigate('clients',{add:true});});
   document.getElementById('qa-all').addEventListener('click',function(){navigate('jobs');});
   document.getElementById('qa-map').addEventListener('click',function(){navigate('map');});
+  /* Mobile quick actions */
+  var mqj=document.getElementById('qa-m-job');if(mqj)mqj.addEventListener('click',function(){navigate('new-job');});
+  var mqc=document.getElementById('qa-m-cl');if(mqc)mqc.addEventListener('click',function(){navigate('clients',{add:true});});
+  var mqa=document.getElementById('qa-m-all');if(mqa)mqa.addEventListener('click',function(){navigate('jobs');});
+  var mqm=document.getElementById('qa-m-map');if(mqm)mqm.addEventListener('click',function(){navigate('map');});
+  /* Tappable stat cards */
+  el.querySelectorAll('.stat-card[data-nav]').forEach(function(card){
+    card.style.cursor='pointer';
+    card.addEventListener('click',function(){
+      var nav=card.dataset.nav;
+      if(nav==='clients')navigate('clients');
+      else navigate('jobs',{filterStatus:nav});
+    });
+  });
   el.querySelectorAll('.dash-job-card').forEach(function(card){
     card.addEventListener('click',function(e){if(e.target.closest('button'))return;navigate('jobs',{jobId:card.dataset.id});});
   });
@@ -832,8 +853,8 @@ function renderDashboard(el) {
   var ztgl=document.getElementById('dash-zone-toggle');
   if(ztgl)ztgl.addEventListener('click',function(){_dashZoneOnly=!_dashZoneOnly;renderDashboard(el);});
 }
-function dStatCard(label,val,color,bg,icon){
-  return '<div class="stat-card"><div class="stat-icon" style="background:'+bg+';font-size:18px">'+icon+'</div>'+
+function dStatCard(label,val,color,bg,iconHtml,nav){
+  return '<div class="stat-card" data-nav="'+esc(nav||'')+'"><div class="stat-icon" style="background:'+bg+';font-size:18px">'+iconHtml+'</div>'+
     '<div class="stat-value" style="color:'+color+'">'+val+'</div><div class="stat-label">'+label+'</div></div>';
 }
 
@@ -955,6 +976,7 @@ function renderJobs(el, params) {
     '<option value="unzoned">Unzoned</option></select>'+
     '</div><div id="jb-table"></div>';
   if(params.clientId){var s=document.getElementById('flt-c');if(s)s.value=params.clientId;}
+  if(params.filterStatus){var fs=document.getElementById('flt-s');if(fs)fs.value=params.filterStatus;}
   var wrap=el.querySelector('#jb-table');
   function refresh(){jbRenderTable(wrap);}
   refresh();
@@ -983,9 +1005,11 @@ function jbRenderTable(wrap){
       if((j.jobTypes||[]).length>4)types+='<span class="tag">+'+(j.jobTypes.length-4)+'</span>';
       var jz=getClientZone(j.clientId);
       var jzBadge=jz?'<span class="badge" style="background:'+jz.color+'20;color:'+jz.color+';font-size:10px">'+esc(jz.name)+'</span>':'';
+      var recurBadge=j.recurrence?'<span class="badge badge-recurring" title="Recurring: '+esc(j.recurrence.frequency)+'">↻</span>':'';
       return '<div class="list-card jb-row" data-id="'+j.id+'">'+
         '<div class="lc-header">'+
           '<span class="job-num">'+esc(j.jobNumber)+'</span>'+
+          recurBadge+
           statusBadge(j.status)+
           jzBadge+
           '<span style="flex:1"></span>'+
@@ -1025,6 +1049,7 @@ function openJobDetail(id){
     '<span class="detail-key">Priority</span><span class="detail-val">'+priorityHtml(j.priority)+'</span>'+
     '<span class="detail-key">Technician</span><span class="detail-val">'+esc(j.technician||'—')+'</span>'+
     '<span class="detail-key">Time</span><span class="detail-val">'+(j.timeIn?fmtTime(j.timeIn):'—')+(j.timeOut?' → '+fmtTime(j.timeOut):'')+' </span>'+
+    (j.recurrence?'<span class="detail-key">Recurring</span><span class="detail-val"><span class="badge badge-recurring">↻ '+esc(j.recurrence.frequency[0].toUpperCase()+j.recurrence.frequency.slice(1))+'</span>'+(j.recurrence.endDate?' until '+fmtDate(j.recurrence.endDate):'')+'</span>':'')+
     '</div>'+
     (types?'<div><div class="section-title mt-16">Job Types</div><div class="tag-strip">'+types+'</div></div>':'')+
     (j.notes?'<div><div class="section-title mt-16">Notes</div><p style="font-size:13.5px;line-height:1.7;color:var(--text-2);white-space:pre-wrap">'+esc(j.notes)+'</p></div>':'')+
@@ -1035,16 +1060,136 @@ function openJobDetail(id){
   var canLive=j.status!=='completed'&&j.status!=='cancelled';
   openModal(esc(j.jobNumber)+' — '+esc(j.clientName||'Job'),body,
     '<button class="btn btn-secondary" id="jd-close">Close</button>'+
+    '<button class="btn btn-ghost" id="jd-pdf" style="gap:6px">'+icon('dl',14)+' PDF</button>'+
     '<button class="btn btn-ghost" id="jd-edit">Edit Job</button>'+
     (canLive?'<button class="btn btn-success" id="jd-live" style="gap:6px">'+icon('play',14)+' Go Live</button>':''),
     'modal-lg');
   document.getElementById('jd-close').addEventListener('click',closeModal);
+  document.getElementById('jd-pdf').addEventListener('click',function(){generateJobPDF(j.id);});
   document.getElementById('jd-edit').addEventListener('click',function(){closeModal();navigate('new-job',{editId:j.id});});
   if(canLive)document.getElementById('jd-live').addEventListener('click',function(){closeModal();navigate('live-job',{jobId:j.id});});
   var photoSrcs=(j.photos||[]).map(function(p){return p.dataUrl;});
   document.querySelectorAll('.jd-photos .photo-thumb').forEach(function(th){
     th.addEventListener('click',function(){openLightbox(photoSrcs,parseInt(th.dataset.idx));});
   });
+}
+
+/* ═══════════════════════════════════════════════════════
+   PDF JOB REPORT
+═══════════════════════════════════════════════════════ */
+function generateJobPDF(id){
+  var j=getJob(id); if(!j)return;
+  var s=getSettings();
+  var jsPDF=window.jspdf&&window.jspdf.jsPDF;
+  if(!jsPDF){toast('PDF library not loaded','error');return;}
+  var doc=new jsPDF({unit:'mm',format:'a4'});
+  var pw=210, ph=297, mx=15, cw=pw-2*mx, y=15;
+
+  function addPage(){doc.addPage();y=15;}
+  function checkY(need){if(y+need>ph-20){addPage();}}
+
+  /* ── Header ── */
+  doc.setFillColor(45,52,54);
+  doc.rect(0,0,pw,38,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFont('helvetica','bold'); doc.setFontSize(18);
+  doc.text('JOB REPORT',mx,16);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.text(j.jobNumber||'',mx,24);
+  if(s.company){doc.text(s.company,pw-mx,16,{align:'right'});}
+  if(s.technicianName){doc.text(s.technicianName,pw-mx,22,{align:'right'});}
+  if(s.phone){doc.text(s.phone,pw-mx,28,{align:'right'});}
+  if(s.email){doc.text(s.email,pw-mx,34,{align:'right'});}
+  y=46;
+
+  /* ── Section helper ── */
+  function sectionHead(title){
+    checkY(14);
+    doc.setFont('courier','bold'); doc.setFontSize(9);
+    doc.setTextColor(100,110,114);
+    doc.text(title.toUpperCase(),mx,y);
+    y+=2; doc.setDrawColor(200,206,214); doc.line(mx,y,mx+cw,y);
+    y+=6; doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(45,52,54);
+  }
+  function row(label,val){
+    checkY(7);
+    doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(100,110,114);
+    doc.text(label,mx,y);
+    doc.setFont('helvetica','normal'); doc.setFontSize(10); doc.setTextColor(45,52,54);
+    doc.text(String(val||'—'),mx+40,y);
+    y+=6;
+  }
+
+  /* ── Job Details ── */
+  sectionHead('Job Details');
+  row('Job #',j.jobNumber);
+  row('Date',fmtDate(j.date));
+  row('Client',j.clientName||'—');
+  row('Address',j.clientAddress||'—');
+  row('Status',(j.status||'pending').replace('-',' ').replace(/\b\w/g,function(c){return c.toUpperCase();}));
+  row('Priority',(j.priority||'medium')[0].toUpperCase()+(j.priority||'medium').slice(1));
+  row('Technician',j.technician||s.technicianName||'—');
+  y+=2;
+
+  /* ── Time ── */
+  if(j.timeIn||j.timeOut){
+    sectionHead('Time');
+    row('Time In',j.timeIn?fmtTime(j.timeIn):'—');
+    row('Time Out',j.timeOut?fmtTime(j.timeOut):'—');
+    if(j.timeIn&&j.timeOut){
+      var tin=j.timeIn.split(':'), tout=j.timeOut.split(':');
+      var mins=(parseInt(tout[0],10)*60+parseInt(tout[1],10))-(parseInt(tin[0],10)*60+parseInt(tin[1],10));
+      if(mins<0)mins+=1440;
+      var hrs=Math.floor(mins/60), rm=mins%60;
+      row('Duration',hrs+'h '+(rm<10?'0':'')+rm+'m');
+    }
+    y+=2;
+  }
+
+  /* ── Job Types ── */
+  if(j.jobTypes&&j.jobTypes.length){
+    sectionHead('Job Types');
+    var typeLine=(j.jobTypes||[]).join(', ');
+    var split=doc.splitTextToSize(typeLine,cw);
+    split.forEach(function(line){checkY(6);doc.text(line,mx,y);y+=5;});
+    y+=4;
+  }
+
+  /* ── Notes ── */
+  if(j.notes){
+    sectionHead('Notes');
+    var noteLines=doc.splitTextToSize(j.notes,cw);
+    noteLines.forEach(function(line){checkY(6);doc.text(line,mx,y);y+=5;});
+    y+=4;
+  }
+
+  /* ── Checklist ── */
+  if(j.checklist&&j.checklist.length){
+    sectionHead('Checklist');
+    j.checklist.forEach(function(c){
+      checkY(7);
+      var mark=c.checked?'\u2713':'\u25CB';
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      if(c.checked){doc.setTextColor(46,213,115);}else{doc.setTextColor(149,165,166);}
+      doc.text(mark,mx,y);
+      doc.setTextColor(45,52,54);
+      doc.text(c.label||'',mx+6,y);
+      y+=6;
+    });
+    y+=4;
+  }
+
+  /* ── Footer ── */
+  var pages=doc.internal.getNumberOfPages();
+  for(var p=1;p<=pages;p++){
+    doc.setPage(p);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(149,165,166);
+    doc.text('Generated '+new Date().toLocaleString('en-AU'),mx,ph-10);
+    doc.text('Page '+p+' of '+pages,pw-mx,ph-10,{align:'right'});
+  }
+
+  doc.save((j.jobNumber||'job-report')+'.pdf');
+  toast('PDF downloaded','success');
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1102,7 +1247,20 @@ function renderNewJob(el, params) {
     '<div class="card"><div class="card-header"><span class="card-title">Documents</span></div><div class="card-body">'+
       '<div class="file-drop" id="nj-docdrop"><div class="file-drop-icon">'+icon('clip',28)+'</div><p><span>Click to upload</span> or drag &amp; drop files</p></div>'+
       '<div class="file-list mt-8" id="nj-doclist"></div></div></div>'+
-    '</div>';
+    '<div class="card"><div class="card-header"><span class="card-title">Recurring</span></div><div class="card-body">'+
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">'+
+        '<label class="toggle-switch"><input type="checkbox" id="nj-recur-on"'+(v.recurrence?' checked':'')+'><span class="toggle-slider"></span></label>'+
+        '<span style="font-size:13px;color:var(--text-2)">Repeat this job on a schedule</span>'+
+      '</div>'+
+      '<div class="recurrence-fields" id="nj-recur-fields" style="'+(v.recurrence?'':'display:none')+'"><div class="form-row">'+
+        formGrp(false,'Frequency','<select class="form-select" id="nj-recur-freq">'+
+          '<option value="weekly"'+((v.recurrence&&v.recurrence.frequency==='weekly')?' selected':'')+'>Weekly</option>'+
+          '<option value="fortnightly"'+((v.recurrence&&v.recurrence.frequency==='fortnightly')?' selected':'')+'>Fortnightly</option>'+
+          '<option value="monthly"'+((v.recurrence&&v.recurrence.frequency==='monthly')?' selected':'')+'>Monthly</option>'+
+        '</select>')+
+        formGrp(false,'End Date (optional)','<input class="form-input" type="date" id="nj-recur-end" value="'+((v.recurrence&&v.recurrence.endDate)||'')+'">')+
+      '</div></div>'+
+    '</div></div>';
 
   function refreshTypeCount(){document.getElementById('nj-tc').textContent=el.querySelectorAll('.check-chip.on').length+' selected';}
   refreshTypeCount();
@@ -1114,6 +1272,9 @@ function renderNewJob(el, params) {
     if(!key||!JOB_PRESETS[key])return;
     _njCheck=JOB_PRESETS[key].map(function(lbl){return{id:genId(),label:lbl,checked:false};});
     njRenderCheck();e.target.value='';toast('Preset loaded: '+key,'success');
+  });
+  document.getElementById('nj-recur-on').addEventListener('change',function(){
+    document.getElementById('nj-recur-fields').style.display=this.checked?'':'none';
   });
   document.getElementById('nj-cancel').addEventListener('click',function(){navigate('jobs');});
   document.getElementById('nj-save').addEventListener('click',njSave);
@@ -1165,6 +1326,16 @@ async function njSave(){
     internalNotes:document.getElementById('nj-internal').value.trim(),
     checklist:_njCheck, photos:_njPhotos, documents:_njDocs
   });
+  var recurOn=document.getElementById('nj-recur-on').checked;
+  if(recurOn){
+    job.recurrence={
+      frequency:document.getElementById('nj-recur-freq').value,
+      endDate:document.getElementById('nj-recur-end').value||null,
+      lastGenerated:job.date
+    };
+  } else {
+    delete job.recurrence;
+  }
   try{saveJob(job);updateBadges();toast(existing?'Job updated!':'Job saved!','success');navigate('jobs');}
   catch(e){if(e.name==='QuotaExceededError')toast('Storage full! Remove some photos.','error');else toast('Error saving','error');}
 }
@@ -1332,10 +1503,13 @@ function renderPlanner(el) {
   if(!_plannerDate) _plannerDate=today;
 
   document.getElementById('page-title').textContent='Day Planner';
-  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-primary" id="pl-optimise" style="gap:6px">'+icon('refresh',14)+' Optimise Route</button>';
+  document.getElementById('topbar-actions').innerHTML=
+    '<button class="btn btn-ghost btn-sm" id="pl-today">Today</button>'+
+    '<button class="btn btn-primary" id="pl-optimise" style="gap:6px">'+icon('refresh',14)+' Optimise Route</button>';
 
   var allJobs=getJobs();
-  var todayZones=getTodayZones();
+  var planDate=new Date(_plannerDate+'T00:00:00');
+  var todayZones=getZonesForDate(_plannerDate);
   var zoneNames=todayZones.map(function(z){return z.name;}).join(', ')||'None';
   var zoneColors=todayZones.map(function(z){return z.color;});
 
@@ -1351,11 +1525,11 @@ function renderPlanner(el) {
     _plannerSchedule=null;
   }
 
-  /* ── Zone bar ─────────────────────────── */
-  var now=new Date();
-  var dayName=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
-  var monthName=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()];
-  var dateStr=dayName+', '+now.getDate()+' '+monthName;
+  /* ── Zone bar with date nav ────────────── */
+  var dayName=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][planDate.getDay()];
+  var monthName=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][planDate.getMonth()];
+  var dateStr=dayName+', '+planDate.getDate()+' '+monthName;
+  var isToday=_plannerDate===today;
 
   var zoneBadges='';
   todayZones.forEach(function(z){
@@ -1370,14 +1544,18 @@ function renderPlanner(el) {
   if(typeof totalTravel==='number') totalTravel=Math.round(totalTravel)+' min';
 
   var html='<div class="dash-zone-bar" style="margin-bottom:12px">'+
-    '<div class="dash-zone-info">'+icon('clock',14)+' <span style="font-size:13px;color:var(--text-2)">'+dateStr+'</span> &nbsp;'+zoneBadges+'</div>'+
+    '<div class="dash-zone-info" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
+      '<button class="btn btn-ghost btn-icon btn-sm" id="pl-prev">◀</button>'+
+      '<span style="font-size:13px;font-weight:600;color:'+(isToday?'var(--text-1)':'var(--accent)')+'">'+dateStr+'</span>'+
+      '<button class="btn btn-ghost btn-icon btn-sm" id="pl-next">▶</button>'+
+      ' '+zoneBadges+
+    '</div>'+
     '</div>'+
     '<div class="planner-stats">'+
       '<div class="planner-stat"><div class="planner-stat-val">'+jobCount+'</div><div class="planner-stat-label">Jobs</div></div>'+
       '<div class="planner-stat"><div class="planner-stat-val">'+totalTravel+'</div><div class="planner-stat-label">Travel</div></div>'+
       '<div class="planner-stat"><div class="planner-stat-val">'+finishTime+'</div><div class="planner-stat-label">Finish</div></div>'+
-    '</div>'+
-    '<div id="planner-map" class="planner-map"></div>';
+    '</div>';
 
   /* ── Infeasible warning ───────────────── */
   if(_plannerSchedule&&_plannerSchedule.infeasible.length>0) {
@@ -1390,7 +1568,7 @@ function renderPlanner(el) {
     html+='<div class="planner-empty">'+
       '<div style="font-size:40px;margin-bottom:8px">'+icon('clipboard',40)+'</div>'+
       '<div style="font-size:15px;font-weight:600;color:var(--text-1)">No jobs in plan</div>'+
-      '<div style="font-size:13px;color:var(--text-3);margin-top:4px">Add jobs from today\'s zone to get started</div>'+
+      '<div style="font-size:13px;color:var(--text-3);margin-top:4px">Add jobs for this day to get started</div>'+
       '</div>';
   } else {
     html+='<div class="planner-list">';
@@ -1469,7 +1647,8 @@ function renderPlanner(el) {
   }
 
   /* Add job button */
-  html+='<button class="btn btn-secondary planner-add-btn" id="pl-add" style="margin-top:12px;width:100%;gap:6px">'+icon('plus',14)+' Add Job</button>';
+  html+='<button class="btn btn-secondary planner-add-btn" id="pl-add" style="margin-top:12px;width:100%;gap:6px">'+icon('plus',14)+' Add Job</button>'+
+    '<div id="planner-map" class="planner-map"></div>';
 
   el.innerHTML=html;
 
@@ -1478,8 +1657,26 @@ function renderPlanner(el) {
   _plannerMap=L.map('planner-map',{zoomControl:true,attributionControl:false,scrollWheelZoom:true}).setView([-31.95,115.86],11);
   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(_plannerMap);
   _plannerMapRefresh();
+  setTimeout(function(){if(_plannerMap)_plannerMap.invalidateSize();},200);
 
   /* ── Events ───────────────────────────── */
+  document.getElementById('pl-prev').addEventListener('click', function(){
+    var d=new Date(_plannerDate+'T00:00:00'); d.setDate(d.getDate()-1);
+    _plannerDate=d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+    _plannerJobs=[]; _plannerSchedule=null;
+    renderPlanner(el);
+  });
+  document.getElementById('pl-next').addEventListener('click', function(){
+    var d=new Date(_plannerDate+'T00:00:00'); d.setDate(d.getDate()+1);
+    _plannerDate=d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+    _plannerJobs=[]; _plannerSchedule=null;
+    renderPlanner(el);
+  });
+  document.getElementById('pl-today').addEventListener('click', function(){
+    _plannerDate=todayISO(); _plannerJobs=[]; _plannerSchedule=null;
+    renderPlanner(el);
+  });
+
   document.getElementById('pl-optimise').addEventListener('click', function(){
     _runPlannerOptimise();
     renderPlanner(el);
@@ -1599,7 +1796,7 @@ function _runPlannerOptimise() {
 
 function _showPlannerAddModal(el) {
   var allJobs=getJobs();
-  var todayZones=getTodayZones();
+  var todayZones=getZonesForDate(_plannerDate);
   var available=allJobs.filter(function(j){
     if(j.date!==_plannerDate)return false;
     if(j.status==='completed')return false;
@@ -1620,7 +1817,7 @@ function _showPlannerAddModal(el) {
     body+='<div style="text-align:center;padding:24px;color:var(--text-3)">No more jobs available to add.</div>';
   } else {
     if(available.length) {
-      body+='<div style="font-size:12px;font-weight:600;color:var(--text-3);margin-bottom:8px;text-transform:uppercase">Today\'s Jobs</div>';
+      body+='<div style="font-size:12px;font-weight:600;color:var(--text-3);margin-bottom:8px;text-transform:uppercase">Jobs for '+fmtDate(_plannerDate)+'</div>';
       available.forEach(function(j){
         var c=getClient(j.clientId);
         var zone=c?getZoneForPostcode(c.postcode):null;
@@ -1829,6 +2026,183 @@ function docRenderTable(wrap,q,typeFilter){
     th.addEventListener('click',function(){openLightbox(docSrcs,i);});
   });
   wrap.querySelectorAll('.doc-row').forEach(function(row){row.addEventListener('click',function(e){if(e.target.closest('a'))return;navigate('jobs',{jobId:row.dataset.job});});});
+}
+
+/* ═══════════════════════════════════════════════════════
+   TIMESHEET
+═══════════════════════════════════════════════════════ */
+var _tsMode='week', _tsOffset=0;
+
+function calcDuration(timeIn,timeOut){
+  if(!timeIn||!timeOut)return 0;
+  var a=timeIn.split(':'), b=timeOut.split(':');
+  var mins=(parseInt(b[0],10)*60+parseInt(b[1],10))-(parseInt(a[0],10)*60+parseInt(a[1],10));
+  if(mins<0)mins+=1440;
+  return mins;
+}
+function fmtDuration(mins){
+  if(!mins)return '—';
+  var h=Math.floor(mins/60), m=mins%60;
+  return h+'h '+(m<10?'0':'')+m+'m';
+}
+
+function getWeekRange(offset){
+  var d=new Date(); d.setDate(d.getDate()+(offset*7));
+  var day=d.getDay(), diff=d.getDate()-day+(day===0?-6:1);
+  var mon=new Date(d); mon.setDate(diff); mon.setHours(0,0,0,0);
+  var sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  return {start:mon,end:sun};
+}
+function getMonthRange(offset){
+  var d=new Date();
+  var start=new Date(d.getFullYear(),d.getMonth()+offset,1);
+  var end=new Date(d.getFullYear(),d.getMonth()+offset+1,0);
+  return {start:start,end:end};
+}
+function toISO(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+
+function renderTimesheet(el){
+  document.getElementById('page-title').textContent='Timesheet';
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-ghost" id="ts-pdf" style="gap:6px">'+icon('dl',14)+' Export PDF</button>';
+
+  function render(){
+    var range=_tsMode==='week'?getWeekRange(_tsOffset):getMonthRange(_tsOffset);
+    var startISO=toISO(range.start), endISO=toISO(range.end);
+    var jobs=getJobs().filter(function(j){return j.date>=startISO&&j.date<=endISO&&j.timeIn&&j.timeOut;});
+    jobs.sort(function(a,b){return(a.date+a.timeIn).localeCompare(b.date+b.timeIn);});
+
+    var rangeLabel=_tsMode==='week'?
+      range.start.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'})+' — '+range.end.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short',year:'numeric'}):
+      range.start.toLocaleDateString('en-AU',{month:'long',year:'numeric'});
+
+    var grouped={};
+    var cur=new Date(range.start);
+    while(cur<=range.end){
+      grouped[toISO(cur)]=[];
+      cur.setDate(cur.getDate()+1);
+    }
+    jobs.forEach(function(j){if(grouped[j.date])grouped[j.date].push(j);});
+
+    var grandTotal=0;
+    var daysHTML='';
+    Object.keys(grouped).sort().forEach(function(date){
+      var dayJobs=grouped[date];
+      var dayTotal=0;
+      dayJobs.forEach(function(j){dayTotal+=calcDuration(j.timeIn,j.timeOut);});
+      grandTotal+=dayTotal;
+      var dd=new Date(date+'T00:00:00');
+      var dayLabel=dd.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}).toUpperCase();
+
+      var entriesHTML='';
+      if(dayJobs.length===0){
+        entriesHTML='<div class="ts-empty">No jobs</div>';
+      } else {
+        dayJobs.forEach(function(j){
+          var dur=calcDuration(j.timeIn,j.timeOut);
+          entriesHTML+='<div class="ts-entry" data-job="'+j.id+'">'+
+            '<span class="ts-job-num">'+esc(j.jobNumber)+'</span>'+
+            '<span class="ts-client">'+esc(j.clientName||'—')+'</span>'+
+            '<span class="ts-time">'+fmtTime(j.timeIn)+' → '+fmtTime(j.timeOut)+'</span>'+
+            '<span class="ts-dur">'+fmtDuration(dur)+'</span>'+
+            '</div>';
+        });
+      }
+      daysHTML+='<div class="ts-day"><div class="ts-day-head"><span>'+dayLabel+'</span><span class="ts-day-total">'+fmtDuration(dayTotal)+'</span></div>'+entriesHTML+'</div>';
+    });
+
+    el.innerHTML='<div class="ts-wrap">'+
+      '<div class="ts-controls">'+
+      '<button class="btn btn-icon btn-ghost" id="ts-prev">'+icon('refresh',16)+'</button>'+
+      '<div class="ts-mode"><button class="btn btn-sm '+((_tsMode==='week')?'btn-primary':'btn-secondary')+'" id="ts-week">Week</button>'+
+      '<button class="btn btn-sm '+((_tsMode==='month')?'btn-primary':'btn-secondary')+'" id="ts-month">Month</button></div>'+
+      '<span class="ts-range-label">'+rangeLabel+'</span>'+
+      '<button class="btn btn-icon btn-ghost" id="ts-next" style="transform:scaleX(-1)">'+icon('refresh',16)+'</button>'+
+      '</div>'+
+      daysHTML+
+      '<div class="ts-total"><span>TOTAL</span><span>'+fmtDuration(grandTotal)+'</span></div>'+
+      '</div>';
+
+    /* Prev / Next arrows */
+    document.getElementById('ts-prev').onclick=function(){
+      document.getElementById('ts-prev').innerHTML='◀';
+      _tsOffset--; render();
+    };
+    document.getElementById('ts-next').onclick=function(){_tsOffset++; render();};
+    document.getElementById('ts-week').onclick=function(){_tsMode='week';_tsOffset=0;render();};
+    document.getElementById('ts-month').onclick=function(){_tsMode='month';_tsOffset=0;render();};
+
+    /* Click entry → open job */
+    el.querySelectorAll('.ts-entry').forEach(function(row){
+      row.addEventListener('click',function(){navigate('jobs',{jobId:row.dataset.job});});
+    });
+  }
+
+  render();
+
+  /* Arrow button text fix */
+  setTimeout(function(){
+    var prev=document.getElementById('ts-prev'); if(prev)prev.innerHTML='◀';
+    var next=document.getElementById('ts-next'); if(next){next.style.transform='';next.innerHTML='▶';}
+  },0);
+
+  /* Export PDF */
+  document.getElementById('ts-pdf').addEventListener('click',function(){
+    var jsPDF=window.jspdf&&window.jspdf.jsPDF;
+    if(!jsPDF){toast('PDF library not loaded','error');return;}
+    var range=_tsMode==='week'?getWeekRange(_tsOffset):getMonthRange(_tsOffset);
+    var startISO=toISO(range.start), endISO=toISO(range.end);
+    var jobs=getJobs().filter(function(j){return j.date>=startISO&&j.date<=endISO&&j.timeIn&&j.timeOut;});
+    jobs.sort(function(a,b){return(a.date+a.timeIn).localeCompare(b.date+b.timeIn);});
+    var s=getSettings();
+
+    var doc=new jsPDF({unit:'mm',format:'a4'});
+    var pw=210, mx=15, cw=pw-2*mx, y=15;
+
+    doc.setFillColor(45,52,54);
+    doc.rect(0,0,pw,32,'F');
+    doc.setTextColor(255,255,255);
+    doc.setFont('helvetica','bold'); doc.setFontSize(16);
+    doc.text('TIMESHEET',mx,16);
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    var rangeLabel=_tsMode==='week'?
+      range.start.toLocaleDateString('en-AU',{day:'numeric',month:'short'})+' — '+range.end.toLocaleDateString('en-AU',{day:'numeric',month:'short',year:'numeric'}):
+      range.start.toLocaleDateString('en-AU',{month:'long',year:'numeric'});
+    doc.text(rangeLabel,mx,24);
+    if(s.company)doc.text(s.company,pw-mx,16,{align:'right'});
+    if(s.technicianName)doc.text(s.technicianName,pw-mx,24,{align:'right'});
+    y=40;
+
+    /* Table header */
+    doc.setFont('courier','bold'); doc.setFontSize(8); doc.setTextColor(100,110,114);
+    doc.text('DATE',mx,y); doc.text('JOB #',mx+30,y); doc.text('CLIENT',mx+55,y); doc.text('IN',mx+120,y); doc.text('OUT',mx+138,y); doc.text('HOURS',mx+158,y);
+    y+=3; doc.setDrawColor(200,206,214); doc.line(mx,y,mx+cw,y); y+=5;
+
+    var grandTotal=0;
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(45,52,54);
+    jobs.forEach(function(j){
+      if(y>270){doc.addPage();y=15;}
+      var dur=calcDuration(j.timeIn,j.timeOut);
+      grandTotal+=dur;
+      doc.text(fmtDate(j.date),mx,y);
+      doc.text(j.jobNumber||'',mx+30,y);
+      doc.text((j.clientName||'').substring(0,28),mx+55,y);
+      doc.text(fmtTime(j.timeIn),mx+120,y);
+      doc.text(fmtTime(j.timeOut),mx+138,y);
+      doc.text(fmtDuration(dur),mx+158,y);
+      y+=5.5;
+    });
+
+    y+=3; doc.setDrawColor(200,206,214); doc.line(mx,y,mx+cw,y); y+=6;
+    doc.setFont('helvetica','bold'); doc.setFontSize(10);
+    doc.text('TOTAL',mx,y);
+    doc.text(fmtDuration(grandTotal),mx+158,y);
+
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(149,165,166);
+    doc.text('Generated '+new Date().toLocaleString('en-AU'),mx,287);
+
+    doc.save('timesheet-'+startISO+'.pdf');
+    toast('Timesheet PDF downloaded','success');
+  });
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -2047,9 +2421,61 @@ function initLogin(){
   });
 }
 
+/* ── Recurring job generation ──────────────────────── */
+function processRecurringJobs(){
+  var jobs=getJobs();
+  var today=todayISO();
+  var changed=false;
+  jobs.forEach(function(j){
+    if(!j.recurrence)return;
+    var r=j.recurrence;
+    var last=r.lastGenerated||j.date;
+    if(!last)return;
+
+    function addInterval(iso,freq){
+      var d=new Date(iso+'T00:00:00');
+      if(freq==='weekly')d.setDate(d.getDate()+7);
+      else if(freq==='fortnightly')d.setDate(d.getDate()+14);
+      else if(freq==='monthly')d.setMonth(d.getMonth()+1);
+      return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+    }
+
+    var next=addInterval(last,r.frequency);
+    var safety=0;
+    while(next<=today&&safety<52){
+      if(r.endDate&&next>r.endDate)break;
+      /* Create new job instance */
+      saveJob({
+        clientId:j.clientId, clientName:j.clientName, clientAddress:j.clientAddress,
+        date:next, jobTypes:(j.jobTypes||[]).slice(), status:'pending',
+        priority:j.priority, technician:j.technician,
+        notes:j.notes, internalNotes:'',
+        timeIn:'', timeOut:'',
+        checklist:(j.checklist||[]).map(function(c){return{id:genId(),label:c.label,checked:false};}),
+        photos:[], documents:[]
+      });
+      j.recurrence.lastGenerated=next;
+      changed=true;
+      next=addInterval(next,r.frequency);
+      safety++;
+    }
+  });
+  if(changed){
+    /* Re-save templates with updated lastGenerated */
+    var all=getJobs();
+    jobs.forEach(function(j){
+      if(!j.recurrence)return;
+      var idx=all.findIndex(function(x){return x.id===j.id;});
+      if(idx>=0)all[idx]=j;
+    });
+    dbSave(K.JOBS,all);
+  }
+}
+
 function startApp(){
   try{
     seedIfEmpty();
+    processRecurringJobs();
     var s=getSettings();
     if(s.technicianName){var sub=document.getElementById('tech-name-display');if(sub)sub.textContent=s.technicianName;}
     document.querySelectorAll('.nav-item[data-view]').forEach(function(item){item.addEventListener('click',function(){navigate(item.dataset.view);});});

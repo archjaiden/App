@@ -1,6 +1,6 @@
 'use strict';
 
-const CACHE = 'techdoc-v20';
+const CACHE = 'techdoc-v25';
 
 const ASSETS = [
   './',
@@ -11,6 +11,7 @@ const ASSETS = [
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap',
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js',
 ];
 
 self.addEventListener('install', e => {

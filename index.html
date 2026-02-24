@@ -117,6 +117,13 @@
           </svg>
           <span>Documents</span>
         </a>
+
+        <a class="nav-item" data-view="timesheet">
+          <svg class="nav-item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Timesheet</span>
+        </a>
       </nav>
 
       <div class="sidebar-footer">
@@ -185,6 +192,7 @@
   </nav>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js" crossorigin=""></script>
   <script src="js/app.js" defer></script>
   <script>
     if ('serviceWorker' in navigator) {
