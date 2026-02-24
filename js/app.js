@@ -93,6 +93,14 @@ var JOB_PRESETS = {
   ]
 };
 
+var DEFAULT_ZONES = [
+  {id:'zone-1',name:'CBD',  color:'#ff4757',postcodeMin:6000,postcodeMax:6019,days:[1]},
+  {id:'zone-2',name:'North',color:'#00b894',postcodeMin:6020,postcodeMax:6049,days:[2]},
+  {id:'zone-3',name:'East', color:'#7c5cfc',postcodeMin:6050,postcodeMax:6099,days:[3]},
+  {id:'zone-4',name:'South',color:'#2ed573',postcodeMin:6100,postcodeMax:6169,days:[4]},
+  {id:'zone-5',name:'Outer',color:'#ffa502',postcodeMin:6170,postcodeMax:6999,days:[5]}
+];
+
 function pad2(n) { return n < 10 ? '0' + n : String(n); }
 
 var STATUS_BADGE = { pending:'badge-gray','in-progress':'badge-orange',completed:'badge-green',cancelled:'badge-red' };
@@ -120,22 +128,154 @@ var SAMPLE_CLIENTS = [
   { name:'Rockingham Auto Parts', contact:'Dave Carpenter', phone:'08 9527 8811',
     email:'dave@rockauto.com.au', address:'45 Dixon Road',
     suburb:'Rockingham', postcode:'6168', lat:-32.2769, lng:115.7312,
-    notes:'Small business — 3 POS terminals and a NAS.', tags:['SMB'] }
+    notes:'Small business — 3 POS terminals and a NAS.', tags:['SMB'] },
+  { name:'Midland Gate IT Services', contact:'Tom Andersen', phone:'08 9274 3300',
+    email:'tom@midgateit.com.au', address:'274 Great Eastern Highway',
+    suburb:'Midland', postcode:'6056', lat:-31.8889, lng:116.0104,
+    notes:'Retail IT services in the shopping centre. Access via loading dock after hours.', tags:['Retail'] },
+  { name:'Morley Business Hub', contact:'Priya Sharma', phone:'08 9276 5500',
+    email:'priya@morleybiz.com.au', address:'22 Russell Street',
+    suburb:'Morley', postcode:'6062', lat:-31.8960, lng:115.9050,
+    notes:'Co-working space — 20 hot desks and 4 meeting rooms. Shared network.', tags:['Co-working'] },
+  { name:'Kalamunda Winery & Cellars', contact:'Greg Harmon', phone:'08 9293 1122',
+    email:'greg@kalamundawines.com.au', address:'8 Railway Road',
+    suburb:'Kalamunda', postcode:'6076', lat:-31.9726, lng:116.0584,
+    notes:'POS and CCTV across cellar door and warehouse. Poor mobile signal on site.', tags:['Hospitality'] },
+  { name:'Hillarys Marina Cafe', contact:'Anna Vasquez', phone:'0438 221 009',
+    email:'anna@hillariescafe.com.au', address:'58 Southside Drive',
+    suburb:'Hillarys', postcode:'6025', lat:-31.8225, lng:115.7380,
+    notes:'Beachside cafe — outdoor POS terminal exposed to salt air, needs regular servicing.', tags:['Hospitality'] },
+  { name:'Currambine Sports Centre', contact:'Brett Lynch', phone:'08 9304 7100',
+    email:'brett@currambinesports.com.au', address:'11 Delamere Avenue',
+    suburb:'Currambine', postcode:'6028', lat:-31.7336, lng:115.7464,
+    notes:'Sports facility — server room in basement. Bring torch, lighting is poor.', tags:['Community'] },
+  { name:'Baldivis Industrial Supplies', contact:'Karen Osei', phone:'08 9524 6200',
+    email:'karen@baldivis-ind.com.au', address:'3 Eighty Road',
+    suburb:'Baldivis', postcode:'6171', lat:-32.3281, lng:115.7822,
+    notes:'Warehouse operation — dusty environment, bring laptop covers.', tags:['Industrial'] },
+  { name:'Mandurah Marina Services', contact:'Steve Nguyen', phone:'08 9535 4400',
+    email:'steve@mandurahmarina.com.au', address:'7 Mandurah Terrace',
+    suburb:'Mandurah', postcode:'6210', lat:-32.5231, lng:115.7210,
+    notes:'Marina office and chandlery. Two buildings connected via walkway.', tags:['Marine'] },
+  { name:'Singleton Community Centre', contact:'Lisa Forde', phone:'08 9524 9800',
+    email:'lisa@singletoncc.org.au', address:'20 Singleton Beach Road',
+    suburb:'Singleton', postcode:'6175', lat:-32.4448, lng:115.7615,
+    notes:'Community centre — public WiFi network separate from admin. Must not mix.', tags:['Community'] }
 ];
 
+var tmrwISO=(function(){var d=new Date();d.setDate(d.getDate()+1);return d.toISOString().slice(0,10);})();
 var SAMPLE_JOBS = [
   { clientIdx:0, date:daysAgo(2), jobTypes:['Desktop Deployment','Office 365 Setup','User Account Setup'],
-    status:'completed', priority:'high', timeIn:'08:00', timeOut:'16:30',
+    status:'completed', priority:'high', timeIn:'08:00', timeOut:'16:30', estimatedDuration:120,
     notes:'Deployed 12 new Dell OptiPlex 7090s on Level 3. Installed Windows 11 Pro, Office 365, and configured AD accounts.' },
   { clientIdx:1, date:daysAgo(5), jobTypes:['Server Maintenance','Data Backup'],
-    status:'completed', priority:'medium', timeIn:'07:30', timeOut:'10:00',
+    status:'completed', priority:'medium', timeIn:'07:30', timeOut:'10:00', estimatedDuration:90,
     notes:'Monthly server maintenance. Replaced failing drive in RAID array, ran full backup to offsite NAS.' },
   { clientIdx:2, date:daysAgo(1), jobTypes:['CCTV Installation','Network Configuration'],
-    status:'in-progress', priority:'medium', timeIn:'09:00', timeOut:'17:00',
+    status:'in-progress', priority:'medium', timeIn:'09:00', timeOut:'17:00', estimatedDuration:60,
     notes:'Installing 8-camera CCTV system. Camera 4 and 5 still need cabling through ceiling.' },
   { clientIdx:3, date:todayISO(), jobTypes:['WiFi Troubleshooting','Network Configuration'],
-    status:'pending', priority:'low', timeIn:'', timeOut:'',
-    notes:'Reported intermittent WiFi dropouts in east wing. Investigate AP coverage.' }
+    status:'pending', priority:'low', timeIn:'', timeOut:'', estimatedDuration:45,
+    notes:'Reported intermittent WiFi dropouts in east wing. Investigate AP coverage.' },
+  { clientIdx:0, date:todayISO(), jobTypes:['Office 365 Setup','User Account Setup'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:90,
+    notes:'New starter onboarding — 4 accounts needed by EOD. Laptop pre-staged in IT room.' },
+  { clientIdx:2, date:todayISO(), jobTypes:['POS System','Network Configuration'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:60,
+    notes:'Replace ageing POS terminal at front counter. New unit already shipped to site.' },
+  { clientIdx:3, date:todayISO(), jobTypes:['Printer Troubleshooting'],
+    status:'pending', priority:'low', timeIn:'', timeOut:'', estimatedDuration:45,
+    notes:'Colour laser on Level 2 showing paper jam error but tray is clear. May need roller replacement.' },
+  { clientIdx:4, date:todayISO(), jobTypes:['Data Backup','NAS/Storage Setup'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:75,
+    notes:'Configure nightly backup to new Synology NAS. Verify all POS data included.' },
+  { clientIdx:1, date:todayISO(), jobTypes:['Server Maintenance','Data Backup'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:120,
+    notes:'Quarterly server health check. RAID controller flagged a warning last week — inspect and replace if needed.' },
+  { clientIdx:0, date:tmrwISO, jobTypes:['WiFi Troubleshooting'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:60,
+    notes:'Board room WiFi drops during video calls. Suspect AP channel congestion.' },
+  { clientIdx:2, date:tmrwISO, jobTypes:['CCTV Installation'],
+    status:'pending', priority:'low', timeIn:'', timeOut:'', estimatedDuration:90,
+    notes:'Finish camera 4 and 5 cabling from previous visit. Test all feeds on NVR.' },
+  { clientIdx:4, date:tmrwISO, jobTypes:['Hardware Repair','Hardware Replacement'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:45,
+    notes:'Workshop PC not booting — suspect PSU failure. Bring replacement 550W unit.' },
+  /* ── Extra CBD jobs ─────────────────── */
+  { clientIdx:0, date:todayISO(), jobTypes:['Server Maintenance'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:90,
+    notes:'Exchange server throwing 503 errors since last night. Investigate and restart services.' },
+  { clientIdx:2, date:todayISO(), jobTypes:['WiFi Troubleshooting'],
+    status:'pending', priority:'low', timeIn:'', timeOut:'', estimatedDuration:45,
+    notes:'Outdoor terrace WiFi extender not connecting. Check PoE injector.' },
+  { clientIdx:0, date:todayISO(), jobTypes:['Hardware Repair','Hardware Replacement'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:60,
+    notes:'Reception monitor flickering — likely faulty DisplayPort cable. Bring spare.' },
+  /* ── Extra North jobs ───────────────── */
+  { clientIdx:8, date:todayISO(), jobTypes:['CCTV Installation','Security System Setup'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:90,
+    notes:'Install 4 weatherproof cameras around marina car park. NVR in back office.' },
+  { clientIdx:9, date:todayISO(), jobTypes:['Desktop Deployment','Software Installation'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:120,
+    notes:'Roll out 6 new front-desk PCs. Image via USB, join to domain, install booking software.' },
+  { clientIdx:3, date:todayISO(), jobTypes:['Software Installation','Windows Update / Patching'],
+    status:'pending', priority:'low', timeIn:'', timeOut:'', estimatedDuration:45,
+    notes:'Apply Feb security patches to council workstations. After-hours preferred but not required.' },
+  /* ── Extra East jobs ────────────────── */
+  { clientIdx:5, date:todayISO(), jobTypes:['POS System','Data Migration'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:90,
+    notes:'Migrate from legacy POS to cloud-based Square. Export historical sales data first.' },
+  { clientIdx:6, date:todayISO(), jobTypes:['Network Configuration','VPN Setup'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:75,
+    notes:'Set up site-to-site VPN between Morley hub and CBD head office. Firewall rules needed.' },
+  { clientIdx:7, date:todayISO(), jobTypes:['WiFi Setup','Cabling & Patching'],
+    status:'pending', priority:'low', timeIn:'', timeOut:'', estimatedDuration:60,
+    notes:'Run Cat6 from server rack to cellar door POS. Install new Ubiquiti AP for guest WiFi.' },
+  /* ── Extra South jobs ───────────────── */
+  { clientIdx:1, date:todayISO(), jobTypes:['Printer Setup','Printer Troubleshooting'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:45,
+    notes:'New colour laser for reception. Decommission old unit and set up network printing.' },
+  { clientIdx:4, date:todayISO(), jobTypes:['VoIP / Phone System'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:90,
+    notes:'Install 3CX VoIP system — 4 handsets, configure IVR, port existing number.' },
+  { clientIdx:1, date:todayISO(), jobTypes:['User Training'],
+    status:'pending', priority:'low', timeIn:'', timeOut:'', estimatedDuration:60,
+    notes:'Train 6 reception staff on new patient management software. Bring printed quick-ref cards.' },
+  /* ── Extra Outer jobs ───────────────── */
+  { clientIdx:10, date:todayISO(), jobTypes:['Desktop Deployment','Software Installation'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:120,
+    notes:'Set up 3 ruggedised warehouse PCs with barcode scanning software. Dusty environment.' },
+  { clientIdx:11, date:todayISO(), jobTypes:['Security System Setup','Access Control'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:90,
+    notes:'Install keycard access on marina gates and office doors. Program 20 staff cards.' },
+  { clientIdx:12, date:todayISO(), jobTypes:['Data Backup','Data Recovery'],
+    status:'pending', priority:'low', timeIn:'', timeOut:'', estimatedDuration:75,
+    notes:'Community centre lost files after power surge. Attempt recovery from damaged drive, set up cloud backup.' },
+  /* ── More new-client jobs ───────────── */
+  { clientIdx:5, date:todayISO(), jobTypes:['Printer Setup','Printer Troubleshooting'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:45,
+    notes:'Receipt printer jamming at checkout 2. Replace thermal head and test roll feed.' },
+  { clientIdx:6, date:todayISO(), jobTypes:['Remote Support Setup','Email Configuration'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:60,
+    notes:'Set up AnyDesk on all 20 hot-desk PCs. Configure shared mailbox for front desk.' },
+  { clientIdx:7, date:todayISO(), jobTypes:['CCTV Installation'],
+    status:'pending', priority:'low', timeIn:'', timeOut:'', estimatedDuration:90,
+    notes:'Add 2 cameras to barrel room. Run PoE cable from existing switch in office.' },
+  { clientIdx:8, date:todayISO(), jobTypes:['POS System','WiFi Troubleshooting'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:75,
+    notes:'Outdoor POS dropping connection in wind. Relocate AP and test waterproof enclosure.' },
+  { clientIdx:9, date:todayISO(), jobTypes:['Server Installation','Network Configuration'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:120,
+    notes:'Rack-mount new NAS for CCTV storage. Configure VLAN to isolate camera traffic.' },
+  { clientIdx:10, date:todayISO(), jobTypes:['Antivirus / Security','Windows Update / Patching'],
+    status:'pending', priority:'high', timeIn:'', timeOut:'', estimatedDuration:60,
+    notes:'Warehouse PCs showing malware warnings. Run full scan, patch Windows, harden firewall.' },
+  { clientIdx:11, date:todayISO(), jobTypes:['VoIP / Phone System','Cabling & Patching'],
+    status:'pending', priority:'low', timeIn:'', timeOut:'', estimatedDuration:90,
+    notes:'Run phone cabling to new pontoon office. Install 2 VoIP handsets on existing 3CX system.' },
+  { clientIdx:12, date:todayISO(), jobTypes:['WiFi Setup','User Training'],
+    status:'pending', priority:'medium', timeIn:'', timeOut:'', estimatedDuration:60,
+    notes:'Set up public WiFi with captive portal. Train staff on admin panel and usage reports.' }
 ];
 
 /* ═══════════════════════════════════════════════════════
@@ -184,12 +324,121 @@ function saveJob(j) {
 function deleteJob(id) { dbSave(K.JOBS, getJobs().filter(function(j){return j.id!==id;})); }
 
 function getSettings() {
-  try { return Object.assign({technicianName:'',company:'',phone:'',email:'',jobTypes:null}, JSON.parse(localStorage.getItem(K.SETTINGS)||'{}')); }
-  catch(e) { return {technicianName:'',company:'',phone:'',email:'',jobTypes:null}; }
+  try { return Object.assign({technicianName:'',company:'',phone:'',email:'',jobTypes:null,zones:null}, JSON.parse(localStorage.getItem(K.SETTINGS)||'{}')); }
+  catch(e) { return {technicianName:'',company:'',phone:'',email:'',jobTypes:null,zones:null}; }
 }
 function saveSettings(s) { localStorage.setItem(K.SETTINGS, JSON.stringify(s)); }
 function storageUsage() { var b=0; Object.values(K).forEach(function(k){var v=localStorage.getItem(k);if(v)b+=v.length*2;}); return b; }
 function clearAll() { Object.values(K).forEach(function(k){localStorage.removeItem(k);}); }
+
+/* ── Zone utilities ─────────────────────────── */
+function getZones(){var s=getSettings();return(s.zones&&s.zones.length>0)?s.zones:DEFAULT_ZONES;}
+function getZoneForPostcode(postcode){
+  if(!postcode)return null;var pc=parseInt(postcode,10);if(isNaN(pc))return null;
+  var zones=getZones();
+  for(var i=0;i<zones.length;i++){if(pc>=zones[i].postcodeMin&&pc<=zones[i].postcodeMax)return zones[i];}
+  return null;
+}
+function getTodayZones(){var dow=new Date().getDay();return getZones().filter(function(z){return z.days&&z.days.indexOf(dow)>=0;});}
+function getClientZone(clientId){var c=getClient(clientId);return c?getZoneForPostcode(c.postcode):null;}
+function isJobInZones(job,zones){
+  if(!zones||!zones.length)return false;
+  var c=getClient(job.clientId);if(!c||!c.postcode)return false;
+  var jz=getZoneForPostcode(c.postcode);if(!jz)return false;
+  return zones.some(function(z){return z.id===jz.id;});
+}
+
+/* ── Route optimizer (ported from route-optimizer/routeOptimizer.ts) ── */
+var EARTH_R=6371;
+function haversineKm(lat1,lon1,lat2,lon2){
+  var toR=function(d){return d*Math.PI/180;};
+  var dLat=toR(lat2-lat1),dLon=toR(lon2-lon1);
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(toR(lat1))*Math.cos(toR(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+  return 2*EARTH_R*Math.asin(Math.sqrt(a));
+}
+function travelMins(lat1,lon1,lat2,lon2,speed){return(haversineKm(lat1,lon1,lat2,lon2)/(speed||60))*60;}
+function _r1(n){return Math.round(n*10)/10;}
+
+function simRoute(startLat,startLon,shiftStart,shiftEnd,orderedJobs,speed){
+  speed=speed||60;
+  var seEnd=new Date(shiftEnd),lat=startLat,lon=startLon,time=new Date(shiftStart);
+  var sched=[],infeasible=[],totalT=0;
+  for(var i=0;i<orderedJobs.length;i++){
+    var j=orderedJobs[i],t=travelMins(lat,lon,j.latitude,j.longitude,speed);
+    var arrMs=time.getTime()+t*60000,arr=new Date(arrMs);
+    var wEnd=j.timeWindowEnd?new Date(j.timeWindowEnd):null;
+    var wStart=j.timeWindowStart?new Date(j.timeWindowStart):null;
+    if(wEnd&&arr>wEnd){infeasible.push(j);continue;}
+    var start=wStart&&arr<wStart?wStart:arr;
+    var waitM=(start.getTime()-arrMs)/60000;
+    var end=new Date(start.getTime()+j.estimatedDurationMinutes*60000);
+    if(end>seEnd){infeasible.push(j);continue;}
+    sched.push({job:j,arrivalTime:arr.toISOString(),startTime:start.toISOString(),endTime:end.toISOString(),travelMins:_r1(t),waitMins:_r1(waitM)});
+    totalT+=t;lat=j.latitude;lon=j.longitude;time=end;
+  }
+  return{schedule:sched,totalTravelMins:_r1(totalT),infeasible:infeasible,finishTime:time};
+}
+
+function _rawTravel(sLat,sLon,jobs,sp){
+  var t=0,la=sLat,lo=sLon;
+  for(var i=0;i<jobs.length;i++){t+=travelMins(la,lo,jobs[i].latitude,jobs[i].longitude,sp);la=jobs[i].latitude;lo=jobs[i].longitude;}
+  return t;
+}
+
+function nnConstruct(sLat,sLon,shiftStart,shiftEnd,jobs,opts){
+  var seEnd=new Date(shiftEnd),lat=sLat,lon=sLon,time=new Date(shiftStart);
+  var rem=jobs.slice(),route=[],alpha=opts.priorityAlpha||0.3,sp=opts.speed||60;
+  while(rem.length){
+    var bestI=-1,bestC=Infinity;
+    for(var i=0;i<rem.length;i++){
+      var j=rem[i],t=travelMins(lat,lon,j.latitude,j.longitude,sp);
+      var arrT=new Date(time.getTime()+t*60000);
+      var wEnd=j.timeWindowEnd?new Date(j.timeWindowEnd):null;
+      var wStart=j.timeWindowStart?new Date(j.timeWindowStart):null;
+      if(wEnd&&arrT>wEnd)continue;
+      var st=wStart&&arrT<wStart?wStart:arrT;
+      var en=new Date(st.getTime()+j.estimatedDurationMinutes*60000);
+      if(en>seEnd)continue;
+      var pf=1+alpha*(j.priority-1),cost=t/pf;
+      if(cost<bestC){bestC=cost;bestI=i;}
+    }
+    if(bestI===-1)break;
+    var chosen=rem.splice(bestI,1)[0];route.push(chosen);
+    var tt=travelMins(lat,lon,chosen.latitude,chosen.longitude,sp);
+    var aT=new Date(time.getTime()+tt*60000);
+    var ws2=chosen.timeWindowStart?new Date(chosen.timeWindowStart):null;
+    var sT=ws2&&aT<ws2?ws2:aT;
+    time=new Date(sT.getTime()+chosen.estimatedDurationMinutes*60000);
+    lat=chosen.latitude;lon=chosen.longitude;
+  }
+  return route;
+}
+
+function twoOptImprove(sLat,sLon,shiftStart,shiftEnd,jobs,opts){
+  if(jobs.length<3)return jobs.slice();
+  var best=jobs.slice(),sp=opts.speed||60,improved=true;
+  while(improved){improved=false;
+    outerLoop:for(var i=0;i<best.length-1;i++){for(var j=i+1;j<best.length;j++){
+      var cand=best.slice(0,i).concat(best.slice(i,j+1).reverse()).concat(best.slice(j+1));
+      if(_rawTravel(sLat,sLon,cand,sp)<_rawTravel(sLat,sLon,best,sp)){
+        var s2=simRoute(sLat,sLon,shiftStart,shiftEnd,cand,sp);
+        if(s2.infeasible.length===0){best=cand;improved=true;break outerLoop;}
+      }
+    }}
+  }
+  return best;
+}
+
+function planRoute(responder,jobs){
+  if(!jobs.length)return{orderedJobs:[],schedule:[],totalTravelMins:0,estimatedFinishTime:responder.shiftStart,infeasible:[]};
+  var opts={speed:60,priorityAlpha:0.3};
+  var nn=nnConstruct(responder.startLat,responder.startLon,responder.shiftStart,responder.shiftEnd,jobs,opts);
+  var opt=twoOptImprove(responder.startLat,responder.startLon,responder.shiftStart,responder.shiftEnd,nn,opts);
+  var sim=simRoute(responder.startLat,responder.startLon,responder.shiftStart,responder.shiftEnd,opt,opts.speed);
+  var ids=new Set(sim.schedule.map(function(s){return s.job.id;}));
+  var inf=jobs.filter(function(j){return !ids.has(j.id);});
+  return{orderedJobs:sim.schedule.map(function(s){return s.job;}),schedule:sim.schedule,totalTravelMins:sim.totalTravelMins,estimatedFinishTime:sim.finishTime.toISOString(),infeasible:inf};
+}
 
 function seedIfEmpty() {
   if (getClients().length > 0) return;
@@ -203,6 +452,7 @@ function seedIfEmpty() {
       clientAddress:cl.address+', '+cl.suburb+' WA '+cl.postcode,
       date:j.date,jobTypes:j.jobTypes,status:j.status,priority:j.priority,
       technician:'',notes:j.notes,internalNotes:'',timeIn:j.timeIn,timeOut:j.timeOut,
+      estimatedDuration:j.estimatedDuration||60,
       photos:[],documents:[],checklist:[]});
   });
 }
@@ -239,7 +489,7 @@ function closeModal() { var el=document.getElementById('modal-overlay'); if(el)e
 function openLightbox(srcs,startIdx) {
   var cur=startIdx||0, total=srcs.length;
   var ov=document.createElement('div');
-  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.95);display:flex;align-items:center;justify-content:center;z-index:9000';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);display:flex;align-items:center;justify-content:center;z-index:9000';
   var img=document.createElement('img');
   img.style.cssText='max-width:92vw;max-height:84vh;border-radius:8px;object-fit:contain;user-select:none;pointer-events:none;display:block';
   var counter=document.createElement('div');
@@ -393,11 +643,22 @@ window.navigate=navigate; // needed for map popup onclick
 
 function navigate(view, params) {
   params=params||{};
+  /* ── Cleanup outgoing view immediately ── */
+  if (currentView==='planner'&&view!=='planner') { if(_plannerMap){_plannerMap.remove();_plannerMap=null;} }
   if (currentView==='map'&&view!=='map') cleanupMap();
   if (currentView==='live-job'&&view!=='live-job') {
     if (_liveTimerInterval) { clearInterval(_liveTimerInterval); _liveTimerInterval=null; }
   }
   var content=document.getElementById('page-content');
+  var changing=currentView&&currentView!==view;
+  if(changing){
+    content.classList.add('view-out');
+    setTimeout(function(){_doNavigate(view,params,content);},120);
+  } else {
+    _doNavigate(view,params,content);
+  }
+}
+function _doNavigate(view,params,content){
   content.scrollTop=0;
   if (view==='map') {
     content.style.padding='0'; content.style.overflow='hidden'; content.style.display='';
@@ -412,9 +673,12 @@ function navigate(view, params) {
     var v=item.dataset.view;
     item.classList.toggle('active',v===view||(v==='jobs'&&(view==='new-job'||view==='live-job')));
   });
-  var views={dashboard:renderDashboard,clients:renderClients,jobs:renderJobs,'new-job':renderNewJob,'live-job':renderLiveJob,map:renderMap,documents:renderDocuments,settings:renderSettings};
+  var views={dashboard:renderDashboard,clients:renderClients,jobs:renderJobs,'new-job':renderNewJob,'live-job':renderLiveJob,planner:renderPlanner,map:renderMap,documents:renderDocuments,settings:renderSettings};
   (views[view]||renderDashboard)(content,params);
   updateBadges();
+  /* Force reflow then fade in */
+  void content.offsetHeight;
+  content.classList.remove('view-out');
 }
 function updateBadges() {
   var jobs=getJobs();
@@ -425,6 +689,7 @@ function updateBadges() {
 /* ═══════════════════════════════════════════════════════
    DASHBOARD
 ═══════════════════════════════════════════════════════ */
+var _dashZoneOnly=true;
 function renderDashboard(el) {
   var s=getSettings();
   var firstName=(s.technicianName||'').split(' ')[0]||'there';
@@ -447,24 +712,43 @@ function renderDashboard(el) {
   var completedN=jobs.filter(function(j){return j.status==='completed';}).length;
   var pendingN=jobs.filter(function(j){return j.status==='pending';}).length;
 
+  /* ── Zone filtering ─────────────────────────── */
+  var todayZones=getTodayZones();
+  var zoneBadgesHtml='';
+  var zoneToggleHtml='';
+  if(todayZones.length>0){
+    zoneBadgesHtml=' · '+todayZones.map(function(z){return '<span class="badge" style="background:'+z.color+'20;color:'+z.color+'">'+esc(z.name)+'</span>';}).join(' ');
+    zoneToggleHtml='<button class="'+(_dashZoneOnly?'dash-zone-toggle-active':'btn btn-ghost btn-sm')+'" id="dash-zone-toggle">'+
+      (_dashZoneOnly?icon('pin',12)+' Zone Only':'All Jobs')+
+    '</button>';
+    if(_dashZoneOnly){
+      active=active.filter(function(j){return isJobInZones(j,todayZones);});
+      todayPending=todayPending.filter(function(j){return isJobInZones(j,todayZones);});
+      tomorrowJobs=tomorrowJobs.filter(function(j){return isJobInZones(j,todayZones);});
+    }
+  } else {
+    _dashZoneOnly=false;
+  }
+
   function jobCard(j, highlight) {
-    var typeStr=(j.jobTypes||[]).slice(0,2).join(' · ');
-    if((j.jobTypes||[]).length>2)typeStr+=' +'+((j.jobTypes.length-2)+' more');
+    var types=j.jobTypes||[];
+    var typeStr=types.length?esc(types[0]):'';
+    if(types.length>1)typeStr+=' <span class="djc-type-more">+'+( types.length-1)+'</span>';
     var addr=j.clientAddress?'<div class="djc-meta">'+icon('pin',12)+' <span>'+esc(j.clientAddress)+'</span></div>':'';
     var time=j.timeIn?'<div class="djc-meta">'+icon('clock',12)+' <span>'+fmtTime(j.timeIn)+(j.timeOut?' — '+fmtTime(j.timeOut):'')+(j.duration?' · '+esc(j.duration):'')+'</span></div>':'';
+    var showLive=highlight||j.status==='pending';
     return '<div class="dash-job-card'+(highlight?' active-card':'')+'" data-id="'+j.id+'">'+
       '<div class="djc-header">'+
         '<div>'+
           '<div class="djc-client">'+esc(j.clientName||'—')+'</div>'+
-          (typeStr?'<div class="djc-type">'+esc(typeStr)+'</div>':'')+
+          (typeStr?'<div class="djc-type">'+typeStr+' <span class="djc-num">'+esc(j.jobNumber)+'</span></div>':'')+
         '</div>'+
         statusBadge(j.status)+
       '</div>'+
       '<div class="djc-details">'+time+addr+'</div>'+
-      '<div class="djc-footer">'+
-        '<span class="djc-num">'+esc(j.jobNumber)+'</span>'+
+      (showLive?'<div class="djc-footer">'+
         '<button class="btn btn-primary btn-sm go-live-dash" data-id="'+j.id+'" style="gap:5px">'+icon('play',13)+' Go Live</button>'+
-      '</div>'+
+      '</div>':'')+
     '</div>';
   }
 
@@ -507,15 +791,18 @@ function renderDashboard(el) {
     '</div></div>':'';
 
   el.innerHTML=
-    '<div class="dash-greeting">'+
-      '<div class="dash-greeting-text">'+greeting+', '+esc(firstName)+'</div>'+
-      '<div class="dash-greeting-date">'+esc(dateStr)+'</div>'+
+    '<div class="dash-header">'+
+      '<div>'+
+        '<div class="dash-greeting-text">'+greeting+', '+esc(firstName)+'</div>'+
+        '<div class="dash-greeting-date">'+esc(dateStr)+zoneBadgesHtml+'</div>'+
+      '</div>'+
+      zoneToggleHtml+
     '</div>'+
     '<div class="dash-stats">'+
-      dStatCard('In Progress',active.length,'var(--orange)','rgba(255,159,10,.12)',icon('refresh',18))+
-      dStatCard('Pending',pendingN,'var(--purple)','rgba(191,90,242,.12)',icon('clock',18))+
-      dStatCard('Completed',completedN,'var(--green)','rgba(48,209,88,.12)',icon('check_c',18))+
-      dStatCard('Clients',clients.length,'var(--teal)','rgba(90,200,245,.12)',icon('users',18))+
+      dStatCard('In Progress',active.length,'var(--orange)','rgba(255,165,2,.08)',icon('refresh',18))+
+      dStatCard('Pending',pendingN,'var(--purple)','rgba(124,92,252,.08)',icon('clock',18))+
+      dStatCard('Completed',completedN,'var(--green)','rgba(46,213,115,.08)',icon('check_c',18))+
+      dStatCard('Clients',clients.length,'var(--teal)','rgba(0,184,148,.08)',icon('users',18))+
     '</div>'+
     '<div class="dash-body">'+
       '<div class="dash-main">'+jobsSection+'</div>'+
@@ -542,6 +829,8 @@ function renderDashboard(el) {
   el.querySelectorAll('.go-live-dash').forEach(function(btn){
     btn.addEventListener('click',function(e){e.stopPropagation();navigate('live-job',{jobId:btn.dataset.id});});
   });
+  var ztgl=document.getElementById('dash-zone-toggle');
+  if(ztgl)ztgl.addEventListener('click',function(){_dashZoneOnly=!_dashZoneOnly;renderDashboard(el);});
 }
 function dStatCard(label,val,color,bg,icon){
   return '<div class="stat-card"><div class="stat-icon" style="background:'+bg+';font-size:18px">'+icon+'</div>'+
@@ -660,14 +949,18 @@ function renderJobs(el, params) {
     '<option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>'+
     '<select class="form-select" id="flt-c"><option value="">All Clients</option>'+
     clients.map(function(c){return '<option value="'+c.id+'">'+esc(c.name)+'</option>';}).join('')+
-    '</select></div><div id="jb-table"></div>';
+    '</select>'+
+    '<select class="form-select" id="flt-z"><option value="">All Zones</option>'+
+    getZones().map(function(z){return '<option value="'+z.id+'">'+esc(z.name)+' ('+z.postcodeMin+'–'+z.postcodeMax+')</option>';}).join('')+
+    '<option value="unzoned">Unzoned</option></select>'+
+    '</div><div id="jb-table"></div>';
   if(params.clientId){var s=document.getElementById('flt-c');if(s)s.value=params.clientId;}
   var wrap=el.querySelector('#jb-table');
   function refresh(){jbRenderTable(wrap);}
   refresh();
   document.getElementById('new-jb-btn').addEventListener('click',function(){navigate('new-job');});
   document.getElementById('jb-search').addEventListener('input',refresh);
-  ['flt-s','flt-p','flt-c'].forEach(function(id){var el2=document.getElementById(id);if(el2)el2.addEventListener('change',refresh);});
+  ['flt-s','flt-p','flt-c','flt-z'].forEach(function(id){var el2=document.getElementById(id);if(el2)el2.addEventListener('change',refresh);});
   if(params.jobId)setTimeout(function(){openJobDetail(params.jobId);},80);
 }
 function jbRenderTable(wrap){
@@ -679,16 +972,22 @@ function jbRenderTable(wrap){
   if(status)jobs=jobs.filter(function(j){return j.status===status;});
   if(priority)jobs=jobs.filter(function(j){return j.priority===priority;});
   if(clientId)jobs=jobs.filter(function(j){return j.clientId===clientId;});
+  var zoneId=(document.getElementById('flt-z')||{}).value||'';
+  if(zoneId==='unzoned'){jobs=jobs.filter(function(j){var c2=getClient(j.clientId);return !c2||!c2.postcode||!getZoneForPostcode(c2.postcode);});}
+  else if(zoneId){var sz=getZones().filter(function(z){return z.id===zoneId;})[0];if(sz)jobs=jobs.filter(function(j){return isJobInZones(j,[sz]);});}
   if(q){var ql=q.toLowerCase();jobs=jobs.filter(function(j){return(j.jobNumber+' '+j.clientName+' '+j.notes+' '+(j.jobTypes||[]).join(' ')).toLowerCase().includes(ql);});}
-  if(!jobs.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">'+icon('clipboard',40)+'</div><div class="empty-state-title">'+(q||status||priority||clientId?'No results':'No jobs yet')+'</div></div>';return;}
+  if(!jobs.length){wrap.innerHTML='<div class="empty-state"><div class="empty-state-icon">'+icon('clipboard',40)+'</div><div class="empty-state-title">'+(q||status||priority||clientId||zoneId?'No results':'No jobs yet')+'</div></div>';return;}
   wrap.innerHTML='<div class="list-cards">'+
     jobs.map(function(j){
       var types=(j.jobTypes||[]).slice(0,4).map(function(t){return '<span class="tag">'+esc(t)+'</span>';}).join('');
       if((j.jobTypes||[]).length>4)types+='<span class="tag">+'+(j.jobTypes.length-4)+'</span>';
+      var jz=getClientZone(j.clientId);
+      var jzBadge=jz?'<span class="badge" style="background:'+jz.color+'20;color:'+jz.color+';font-size:10px">'+esc(jz.name)+'</span>':'';
       return '<div class="list-card jb-row" data-id="'+j.id+'">'+
         '<div class="lc-header">'+
           '<span class="job-num">'+esc(j.jobNumber)+'</span>'+
           statusBadge(j.status)+
+          jzBadge+
           '<span style="flex:1"></span>'+
           priorityHtml(j.priority)+
         '</div>'+
@@ -1021,6 +1320,350 @@ function renderLiveJob(el, params) {
 }
 
 /* ═══════════════════════════════════════════════════════
+   DAY PLANNER
+═══════════════════════════════════════════════════════ */
+var _plannerJobs=[];        // array of job IDs in the plan
+var _plannerSchedule=null;  // result from planRoute()
+var _plannerDate=null;      // ISO date string
+var _plannerMap=null;        // Leaflet instance for planner mini-map
+
+function renderPlanner(el) {
+  var today=todayISO();
+  if(!_plannerDate) _plannerDate=today;
+
+  document.getElementById('page-title').textContent='Day Planner';
+  document.getElementById('topbar-actions').innerHTML='<button class="btn btn-primary" id="pl-optimise" style="gap:6px">'+icon('refresh',14)+' Optimise Route</button>';
+
+  var allJobs=getJobs();
+  var todayZones=getTodayZones();
+  var zoneNames=todayZones.map(function(z){return z.name;}).join(', ')||'None';
+  var zoneColors=todayZones.map(function(z){return z.color;});
+
+  /* Auto-populate on first visit or date change */
+  if(!_plannerJobs.length) {
+    var eligible=allJobs.filter(function(j){
+      if(j.date!==_plannerDate)return false;
+      if(j.status!=='pending'&&j.status!=='in-progress')return false;
+      if(todayZones.length&&!isJobInZones(j,todayZones))return false;
+      return true;
+    });
+    _plannerJobs=eligible.map(function(j){return j.id;});
+    _plannerSchedule=null;
+  }
+
+  /* ── Zone bar ─────────────────────────── */
+  var now=new Date();
+  var dayName=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
+  var monthName=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()];
+  var dateStr=dayName+', '+now.getDate()+' '+monthName;
+
+  var zoneBadges='';
+  todayZones.forEach(function(z){
+    zoneBadges+='<span style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:'+z.color+'"><span style="width:8px;height:8px;border-radius:50%;background:'+z.color+'"></span>'+z.name+'</span>';
+  });
+  if(!todayZones.length) zoneBadges='<span style="font-size:12px;color:var(--text-3)">No zone today</span>';
+
+  /* ── Stats ────────────────────────────── */
+  var jobCount=_plannerJobs.length;
+  var totalTravel=_plannerSchedule?_plannerSchedule.totalTravelMins:'—';
+  var finishTime=_plannerSchedule?new Date(_plannerSchedule.estimatedFinishTime).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'—';
+  if(typeof totalTravel==='number') totalTravel=Math.round(totalTravel)+' min';
+
+  var html='<div class="dash-zone-bar" style="margin-bottom:12px">'+
+    '<div class="dash-zone-info">'+icon('clock',14)+' <span style="font-size:13px;color:var(--text-2)">'+dateStr+'</span> &nbsp;'+zoneBadges+'</div>'+
+    '</div>'+
+    '<div class="planner-stats">'+
+      '<div class="planner-stat"><div class="planner-stat-val">'+jobCount+'</div><div class="planner-stat-label">Jobs</div></div>'+
+      '<div class="planner-stat"><div class="planner-stat-val">'+totalTravel+'</div><div class="planner-stat-label">Travel</div></div>'+
+      '<div class="planner-stat"><div class="planner-stat-val">'+finishTime+'</div><div class="planner-stat-label">Finish</div></div>'+
+    '</div>'+
+    '<div id="planner-map" class="planner-map"></div>';
+
+  /* ── Infeasible warning ───────────────── */
+  if(_plannerSchedule&&_plannerSchedule.infeasible.length>0) {
+    html+='<div style="background:rgba(255,69,58,.12);border:1px solid rgba(255,69,58,.3);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:#ff453a">'+
+      icon('warn',14)+' '+_plannerSchedule.infeasible.length+' job(s) could not be scheduled within shift constraints.</div>';
+  }
+
+  /* ── Job list ─────────────────────────── */
+  if(!_plannerJobs.length) {
+    html+='<div class="planner-empty">'+
+      '<div style="font-size:40px;margin-bottom:8px">'+icon('clipboard',40)+'</div>'+
+      '<div style="font-size:15px;font-weight:600;color:var(--text-1)">No jobs in plan</div>'+
+      '<div style="font-size:13px;color:var(--text-3);margin-top:4px">Add jobs from today\'s zone to get started</div>'+
+      '</div>';
+  } else {
+    html+='<div class="planner-list">';
+    for(var i=0;i<_plannerJobs.length;i++) {
+      var jobId=_plannerJobs[i];
+      var job=getJob(jobId);
+      if(!job)continue;
+      var client=getClient(job.clientId);
+      var clientName=job.clientName||'Unknown Client';
+      var addr=job.clientAddress||'';
+      var duration=job.estimatedDuration||60;
+      var zone=client?getZoneForPostcode(client.postcode):null;
+      var zoneBadge=zone?'<span class="planner-zone-badge" style="background:'+zone.color+'20;color:'+zone.color+'">'+zone.name+'</span>':'';
+      var jobTypeStr=(job.jobTypes||[]).join(', ')||'General';
+      var priColors={high:['#ff4757','rgba(255,71,87,.1)'],medium:['#ffa502','rgba(255,165,2,.1)'],low:['#2ed573','rgba(46,213,115,.1)']};
+      var pc=priColors[job.priority]||priColors.low;
+      var priBadge='<span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;background:'+pc[1]+';color:'+pc[0]+'">'+(job.priority||'low')+'</span>';
+
+      /* Schedule data if optimised */
+      var schedItem=null;
+      if(_plannerSchedule) {
+        for(var si=0;si<_plannerSchedule.schedule.length;si++) {
+          if(_plannerSchedule.schedule[si].job.id===jobId){ schedItem=_plannerSchedule.schedule[si]; break; }
+        }
+      }
+
+      /* Travel connector (between cards) */
+      if(i>0&&schedItem) {
+        html+='<div class="planner-travel">'+
+          '<div class="planner-travel-line"></div>'+
+          '<span class="planner-travel-badge">'+icon('pin',12)+' '+schedItem.travelMins+' min drive</span>'+
+          '</div>';
+      }
+
+      /* Status indicator */
+      var statusIcon=job.status==='in-progress'?'<span style="color:#30d158">'+icon('play',12)+'</span>':
+                     job.status==='completed'?'<span style="color:var(--text-3)">'+icon('check_c',12)+'</span>':'';
+
+      /* Arrival time */
+      var arrivalStr='';
+      if(schedItem) {
+        var arrT=new Date(schedItem.arrivalTime);
+        arrivalStr='<div class="planner-arrival">'+arrT.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' arrive</div>';
+      }
+
+      /* Go Live button (only on first pending/in-progress job) */
+      var goLiveBtn='';
+      if(i===_plannerFirstActionable()&&(job.status==='pending'||job.status==='in-progress')) {
+        goLiveBtn='<button class="btn btn-primary planner-go-live" data-id="'+jobId+'" style="font-size:12px;padding:6px 14px;gap:4px">'+icon('play',12)+' Go Live</button>';
+      }
+
+      html+='<div class="planner-card'+(job.status==='completed'?' planner-card-done':'')+'" data-id="'+jobId+'">'+
+        '<div class="planner-num" style="'+(zone?'background:'+zone.color:'')+'">'+
+          (schedItem?(i+1):('·'))+
+        '</div>'+
+        '<div class="planner-card-body">'+
+          arrivalStr+
+          '<div class="planner-card-title">'+statusIcon+' '+clientName+' '+zoneBadge+'</div>'+
+          '<div class="planner-card-addr">'+addr+'</div>'+
+          '<div class="planner-card-meta">'+
+            '<span>'+jobTypeStr+'</span>'+
+            '<span>'+duration+' min</span>'+
+            priBadge+
+          '</div>'+
+          (schedItem?'<div class="planner-card-times">'+
+            '<span>Start '+new Date(schedItem.startTime).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'</span>'+
+            '<span>End '+new Date(schedItem.endTime).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'</span>'+
+            '</div>':'')+
+          '<div class="planner-card-actions">'+goLiveBtn+
+            '<button class="btn btn-secondary planner-remove" data-id="'+jobId+'" style="font-size:11px;padding:4px 10px">'+icon('trash',12)+'</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }
+    html+='</div>';
+  }
+
+  /* Add job button */
+  html+='<button class="btn btn-secondary planner-add-btn" id="pl-add" style="margin-top:12px;width:100%;gap:6px">'+icon('plus',14)+' Add Job</button>';
+
+  el.innerHTML=html;
+
+  /* ── Mini-map ─────────────────────────── */
+  if(_plannerMap){_plannerMap.remove();_plannerMap=null;}
+  _plannerMap=L.map('planner-map',{zoomControl:true,attributionControl:false,scrollWheelZoom:true}).setView([-31.95,115.86],11);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{subdomains:'abcd',maxZoom:19}).addTo(_plannerMap);
+  _plannerMapRefresh();
+
+  /* ── Events ───────────────────────────── */
+  document.getElementById('pl-optimise').addEventListener('click', function(){
+    _runPlannerOptimise();
+    renderPlanner(el);
+  });
+
+  document.getElementById('pl-add').addEventListener('click', function(){
+    _showPlannerAddModal(el);
+  });
+
+  el.querySelectorAll('.planner-remove').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      var id=this.dataset.id;
+      _plannerJobs=_plannerJobs.filter(function(jid){return jid!==id;});
+      _plannerSchedule=null;
+      renderPlanner(el);
+    });
+  });
+
+  el.querySelectorAll('.planner-go-live').forEach(function(btn){
+    btn.addEventListener('click', function(e){
+      e.stopPropagation();
+      navigate('live-job',{jobId:this.dataset.id});
+    });
+  });
+
+  el.querySelectorAll('.planner-card').forEach(function(card){
+    card.addEventListener('click', function(){
+      navigate('jobs',{highlight:this.dataset.id});
+    });
+  });
+}
+
+function _plannerFirstActionable() {
+  for(var i=0;i<_plannerJobs.length;i++){
+    var j=getJob(_plannerJobs[i]);
+    if(j&&(j.status==='pending'||j.status==='in-progress'))return i;
+  }
+  return -1;
+}
+
+function _plannerMapRefresh() {
+  if(!_plannerMap)return;
+  _plannerMap.eachLayer(function(layer){if(!(layer instanceof L.TileLayer))_plannerMap.removeLayer(layer);});
+  var bounds=[];
+  _plannerJobs.forEach(function(jobId,idx){
+    var job=getJob(jobId);if(!job)return;
+    var client=getClient(job.clientId);if(!client||!client.lat||!client.lng)return;
+    var zone=getZoneForPostcode(client.postcode);
+    var col=zone?zone.color:'#ff4757';
+    var mIcon=L.divIcon({className:'',
+      html:'<div style="width:26px;height:26px;border-radius:50%;background:'+col+';color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 6px rgba(0,0,0,.2)">'+(idx+1)+'</div>',
+      iconSize:[26,26],iconAnchor:[13,13]});
+    var marker=L.marker([client.lat,client.lng],{icon:mIcon}).addTo(_plannerMap);
+    marker.bindTooltip(client.name,{direction:'top',offset:[0,-14]});
+    (function(id){marker.on('click',function(){
+      var card=document.querySelector('.planner-card[data-id="'+id+'"]');
+      if(card)card.scrollIntoView({behavior:'smooth',block:'center'});
+    });})(jobId);
+    bounds.push([client.lat,client.lng]);
+  });
+  /* Route polyline when optimised */
+  if(_plannerSchedule&&_plannerSchedule.schedule.length>1){
+    var latlngs=_plannerSchedule.schedule.map(function(s){return[s.job.latitude,s.job.longitude];});
+    L.polyline(latlngs,{color:'#ff4757',weight:3,opacity:0.7,dashArray:'8,6',lineCap:'round'}).addTo(_plannerMap);
+  }
+  if(bounds.length>0){
+    _plannerMap.fitBounds(bounds,{padding:[30,30],maxZoom:13});
+  }
+  setTimeout(function(){if(_plannerMap)_plannerMap.invalidateSize();},120);
+}
+
+function _runPlannerOptimise() {
+  if(!_plannerJobs.length){toast('Add jobs to the plan first','warn');return;}
+
+  /* Build responder — use first client's coords as start */
+  var startLat=null,startLon=null;
+  for(var i=0;i<_plannerJobs.length;i++){
+    var j=getJob(_plannerJobs[i]);
+    if(!j)continue;
+    var c=getClient(j.clientId);
+    if(c&&c.lat&&c.lng){startLat=c.lat;startLon=c.lng;break;}
+  }
+  if(!startLat){toast('No geocoded clients — cannot optimise','error');return;}
+
+  var shiftStart=_plannerDate+'T07:00:00';
+  var shiftEnd=_plannerDate+'T17:00:00';
+
+  var optJobs=[];
+  _plannerJobs.forEach(function(jobId){
+    var j=getJob(jobId);
+    if(!j)return;
+    var c=getClient(j.clientId);
+    if(!c||!c.lat||!c.lng)return;
+    optJobs.push({
+      id:j.id,
+      latitude:c.lat,
+      longitude:c.lng,
+      estimatedDurationMinutes:j.estimatedDuration||60,
+      priority:{high:3,medium:2,low:1}[j.priority]||1
+    });
+  });
+
+  if(!optJobs.length){toast('No geocoded jobs to optimise','warn');return;}
+
+  var responder={startLat:startLat,startLon:startLon,shiftStart:shiftStart,shiftEnd:shiftEnd};
+  _plannerSchedule=planRoute(responder,optJobs);
+  _plannerJobs=_plannerSchedule.orderedJobs.map(function(oj){return oj.id;});
+
+  /* Append any infeasible jobs at the end so they're still visible */
+  _plannerSchedule.infeasible.forEach(function(ij){
+    if(_plannerJobs.indexOf(ij.id)<0)_plannerJobs.push(ij.id);
+  });
+
+  toast('Route optimised — '+Math.round(_plannerSchedule.totalTravelMins)+' min travel','success');
+}
+
+function _showPlannerAddModal(el) {
+  var allJobs=getJobs();
+  var todayZones=getTodayZones();
+  var available=allJobs.filter(function(j){
+    if(j.date!==_plannerDate)return false;
+    if(j.status==='completed')return false;
+    if(_plannerJobs.indexOf(j.id)>=0)return false;
+    return true;
+  });
+  /* Also show all pending jobs not in today's zone as a secondary list */
+  var otherJobs=allJobs.filter(function(j){
+    if(j.status==='completed')return false;
+    if(_plannerJobs.indexOf(j.id)>=0)return false;
+    if(j.date===_plannerDate&&available.indexOf(j)>=0)return false;
+    if(j.status!=='pending')return false;
+    return true;
+  });
+
+  var body='<div style="max-height:400px;overflow-y:auto">';
+  if(!available.length&&!otherJobs.length) {
+    body+='<div style="text-align:center;padding:24px;color:var(--text-3)">No more jobs available to add.</div>';
+  } else {
+    if(available.length) {
+      body+='<div style="font-size:12px;font-weight:600;color:var(--text-3);margin-bottom:8px;text-transform:uppercase">Today\'s Jobs</div>';
+      available.forEach(function(j){
+        var c=getClient(j.clientId);
+        var zone=c?getZoneForPostcode(c.postcode):null;
+        var zb=zone?'<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:'+zone.color+'20;color:'+zone.color+'">'+zone.name+'</span>':'';
+        body+='<label class="planner-add-row" data-id="'+j.id+'"><input type="checkbox" value="'+j.id+'"> <span>'+j.clientName+' '+zb+'</span><span style="font-size:12px;color:var(--text-3)">'+(j.jobTypes||[]).join(', ')+'</span></label>';
+      });
+    }
+    if(otherJobs.length) {
+      body+='<div style="font-size:12px;font-weight:600;color:var(--text-3);margin:12px 0 8px;text-transform:uppercase">Other Pending Jobs</div>';
+      otherJobs.forEach(function(j){
+        var c=getClient(j.clientId);
+        var zone=c?getZoneForPostcode(c.postcode):null;
+        var zb=zone?'<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:'+zone.color+'20;color:'+zone.color+'">'+zone.name+'</span>':'';
+        body+='<label class="planner-add-row" data-id="'+j.id+'"><input type="checkbox" value="'+j.id+'"> <span>'+j.clientName+' '+zb+'</span><span style="font-size:12px;color:var(--text-3)">'+j.date+' · '+(j.jobTypes||[]).join(', ')+'</span></label>';
+      });
+    }
+  }
+  body+='</div>';
+
+  /* Use a simple modal overlay */
+  var overlay=document.createElement('div');
+  overlay.className='modal-overlay';
+  overlay.innerHTML='<div class="modal" style="max-width:440px">'+
+    '<div class="modal-header"><span class="modal-title">Add Jobs to Plan</span><button class="btn btn-ghost btn-icon" id="pl-modal-close">✕</button></div>'+
+    '<div class="modal-body">'+body+'</div>'+
+    '<div class="modal-footer"><button class="btn btn-primary" id="pl-modal-add">Add Selected</button></div>'+
+    '</div>';
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click',function(e){if(e.target===overlay){overlay.remove();}});
+  document.getElementById('pl-modal-close').addEventListener('click',function(){overlay.remove();});
+  document.getElementById('pl-modal-add').addEventListener('click',function(){
+    var checks=overlay.querySelectorAll('input[type="checkbox"]:checked');
+    checks.forEach(function(cb){
+      if(_plannerJobs.indexOf(cb.value)<0)_plannerJobs.push(cb.value);
+    });
+    _plannerSchedule=null;
+    overlay.remove();
+    renderPlanner(el);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════
    MAP
 ═══════════════════════════════════════════════════════ */
 function renderMap(el){
@@ -1030,12 +1673,13 @@ function renderMap(el){
   el.innerHTML='<div id="map-wrap"><div id="map"></div>'+
     '<div id="map-panel" style="width:280px;flex-shrink:0;background:var(--bg-1);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden">'+
     '<div style="padding:14px 16px;border-bottom:1px solid var(--border)"><div style="font-weight:700;font-size:13px;margin-bottom:6px">Jobs</div>'+
-    '<input class="search-input" id="map-search" placeholder="Filter jobs…" style="width:100%;border-radius:6px"></div>'+
+    '<input class="search-input" id="map-search" placeholder="Filter jobs…" style="width:100%;border-radius:6px;margin-bottom:8px">'+
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">'+getZones().map(function(z){return '<div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text-2)"><div style="width:8px;height:8px;border-radius:50%;background:'+z.color+';flex-shrink:0"></div>'+esc(z.name)+'</div>';}).join('')+'</div></div>'+
     '<div id="map-client-list" style="overflow-y:auto;flex:1;padding:8px"></div></div>'+
     '</div>';
   cleanupMap();
   _mapInstance=L.map('map',{center:[-28.5,121.6],zoom:5});
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
     attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
     subdomains:'abcd',maxZoom:19}).addTo(_mapInstance);
   mapRefreshMarkers();
@@ -1050,8 +1694,10 @@ function mapRefreshMarkers(){
     var jobs=getJobsForClient(c.id);
     var active=jobs.filter(function(j){return j.status==='in-progress';}).length;
     var done=jobs.filter(function(j){return j.status==='completed';}).length;
+    var cZone=getZoneForPostcode(c.postcode);
+    var markerColor=active?'var(--orange)':(cZone?cZone.color:'var(--accent)');
     var icon=L.divIcon({className:'',
-      html:'<div style="background:'+(active?'var(--orange)':'var(--accent)')+';color:#fff;font-size:11px;font-weight:700;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.3);box-shadow:0 2px 8px rgba(0,0,0,.5)">'+jobs.length+'</div>',
+      html:'<div style="background:'+markerColor+';color:#fff;font-size:11px;font-weight:700;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border:2px solid rgba(255,255,255,.8);box-shadow:0 2px 8px rgba(0,0,0,.2)">'+jobs.length+'</div>',
       iconSize:[28,28],iconAnchor:[14,14]});
     var marker=L.marker([c.lat,c.lng],{icon:icon}).addTo(_mapInstance);
     (function(client){
@@ -1114,13 +1760,15 @@ function mapRenderList(q){
       '<div style="display:flex;align-items:flex-start;gap:8px">'+dot+
       '<div style="flex:1;min-width:0">'+
         '<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(j.clientName||'—')+'</div>'+
-        '<div style="font-size:11px;color:var(--text-2);margin-top:1px">'+esc(j.jobNumber)+' · '+fmtDate(j.date)+'</div>'+
+        '<div style="font-size:11px;color:var(--text-2);margin-top:1px">'+esc(j.jobNumber)+' · '+fmtDate(j.date)+
+        (function(){var lz=getZoneForPostcode((client||{}).postcode);return lz?' · <span style="color:'+lz.color+';font-weight:600">'+esc(lz.name)+'</span>':'';})()+
+        '</div>'+
         (j.clientAddress?'<div style="font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px">'+esc(j.clientAddress)+'</div>':'')+
       '</div>'+
       '</div></div>';
   }).join('');
   listEl.querySelectorAll('.map-list-item').forEach(function(item){
-    item.addEventListener('mouseenter',function(){item.style.background='rgba(255,255,255,.04)';item.style.borderColor='var(--border)';});
+    item.addEventListener('mouseenter',function(){item.style.background='rgba(0,0,0,.03)';item.style.borderColor='var(--border)';});
     item.addEventListener('mouseleave',function(){item.style.background='';item.style.borderColor='transparent';});
     item.addEventListener('click',function(){
       var lat=parseFloat(item.dataset.lat),lng=parseFloat(item.dataset.lng);
@@ -1195,6 +1843,7 @@ function renderSettings(el,params){
   el.innerHTML='<div style="max-width:760px"><div class="tabs">'+
     '<button class="tab-btn" data-tab="general">General</button>'+
     '<button class="tab-btn" data-tab="jobtypes">Job Types</button>'+
+    '<button class="tab-btn" data-tab="zones">Dispatch Zones</button>'+
     '<button class="tab-btn" data-tab="data">Data &amp; Storage</button>'+
     '</div><div id="stab-body"></div></div>';
   el.querySelectorAll('.tab-btn').forEach(function(btn){
@@ -1232,6 +1881,74 @@ function stRenderTab(){
     body.querySelector('#add-type-btn').addEventListener('click',function(){var v=body.querySelector('#new-type-inp').value.trim();if(!v)return;if(types.includes(v)){toast('Already in list','error');return;}types.push(v);body.querySelector('#new-type-inp').value='';renderTList();});
     body.querySelector('#new-type-inp').addEventListener('keydown',function(e){if(e.key==='Enter')body.querySelector('#add-type-btn').click();});
     document.getElementById('sv-settings').onclick=function(){var s2=getSettings();s2.jobTypes=types;saveSettings(s2);toast('Job types saved','success');};
+  } else if(_stab==='zones'){
+    var DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var DAY_FULL=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    var zones=s.zones?s.zones.slice():DEFAULT_ZONES.slice();
+    function renderZList(){
+      var el2=body.querySelector('#zone-list');if(!el2)return;
+      if(!zones.length){el2.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-3);font-size:13px">No zones configured</div>';return;}
+      el2.innerHTML=zones.map(function(z,i){
+        var dayLabels=(z.days||[]).map(function(d){return DAY_NAMES[d];}).join(', ')||'None';
+        return '<div class="zone-row">'+
+          '<div class="zone-color-dot" style="background:'+z.color+'"></div>'+
+          '<div class="zone-info"><div class="zone-name">'+esc(z.name)+'</div>'+
+          '<div class="zone-meta">'+z.postcodeMin+' – '+z.postcodeMax+' · '+dayLabels+'</div></div>'+
+          '<div class="zone-actions">'+
+          '<button class="btn btn-ghost btn-icon btn-sm zone-edit" data-idx="'+i+'">'+icon('pencil',14)+'</button>'+
+          '<button class="btn btn-ghost btn-icon btn-sm zone-del" data-idx="'+i+'">'+icon('trash',14)+'</button>'+
+          '</div></div>';
+      }).join('');
+      el2.querySelectorAll('.zone-edit').forEach(function(btn){btn.addEventListener('click',function(){openZoneForm(parseInt(btn.dataset.idx));});});
+      el2.querySelectorAll('.zone-del').forEach(function(btn){btn.addEventListener('click',function(){zones.splice(parseInt(btn.dataset.idx),1);renderZList();});});
+    }
+    function openZoneForm(editIdx){
+      var existing=(editIdx!==undefined&&editIdx!==null)?zones[editIdx]:null;
+      var daysCB=DAY_FULL.map(function(name,i){
+        var checked=existing&&existing.days&&existing.days.indexOf(i)>=0;
+        return '<label class="zone-day-check"><input type="checkbox" value="'+i+'"'+(checked?' checked':'')+'>'+name+'</label>';
+      }).join('');
+      var formArea=body.querySelector('#zone-form-area');
+      formArea.innerHTML=
+        '<div class="card mt-16"><div class="card-header"><span class="card-title">'+(existing?'Edit Zone':'Add Zone')+'</span></div><div class="card-body"><div class="form-row">'+
+        formGrp(false,'Zone Name *','<input class="form-input" id="zf-name" value="'+esc(existing?existing.name:'')+'" placeholder="e.g. North">')+
+        formGrp(false,'Color','<input class="form-input" id="zf-color" type="color" value="'+(existing?existing.color:'#ff4757')+'" style="padding:4px;height:38px">')+
+        formGrp(false,'Postcode Min *','<input class="form-input" id="zf-pcmin" type="number" value="'+(existing?existing.postcodeMin:'')+'" placeholder="6000">')+
+        formGrp(false,'Postcode Max *','<input class="form-input" id="zf-pcmax" type="number" value="'+(existing?existing.postcodeMax:'')+'" placeholder="6019">')+
+        formGrp(true,'Assigned Days','<div class="zone-days-grid" id="zf-days">'+daysCB+'</div>')+
+        '</div>'+
+        '<div style="display:flex;gap:8px;margin-top:14px">'+
+        '<button class="btn btn-primary" id="zf-save">'+(existing?'Update Zone':'Add Zone')+'</button>'+
+        '<button class="btn btn-ghost" id="zf-cancel">Cancel</button></div></div></div>';
+      formArea.querySelector('#zf-cancel').addEventListener('click',function(){formArea.innerHTML='';});
+      formArea.querySelector('#zf-save').addEventListener('click',function(){
+        var name=document.getElementById('zf-name').value.trim();
+        var pcMin=parseInt(document.getElementById('zf-pcmin').value,10);
+        var pcMax=parseInt(document.getElementById('zf-pcmax').value,10);
+        var color=document.getElementById('zf-color').value;
+        if(!name){toast('Zone name is required','error');return;}
+        if(isNaN(pcMin)||isNaN(pcMax)){toast('Postcode range is required','error');return;}
+        if(pcMin>pcMax){toast('Min postcode must be <= Max','error');return;}
+        var days=[];
+        formArea.querySelectorAll('#zf-days input:checked').forEach(function(cb){days.push(parseInt(cb.value,10));});
+        if(existing){zones[editIdx]={id:existing.id,name:name,color:color,postcodeMin:pcMin,postcodeMax:pcMax,days:days};}
+        else{zones.push({id:'zone-'+genId(),name:name,color:color,postcodeMin:pcMin,postcodeMax:pcMax,days:days});}
+        formArea.innerHTML='';renderZList();
+      });
+    }
+    body.innerHTML=
+      '<div class="card"><div class="card-header"><span class="card-title">Dispatch Zones</span>'+
+      '<div style="display:flex;gap:6px">'+
+      '<button class="btn btn-ghost btn-sm" id="zones-reset">Reset Defaults</button>'+
+      '<button class="btn btn-secondary btn-sm" id="zones-add" style="gap:5px">'+icon('plus',12)+' Add Zone</button>'+
+      '</div></div><div class="card-body">'+
+      '<p style="font-size:12.5px;color:var(--text-2);margin-bottom:14px">Define postcode ranges and assign each zone to weekdays. The dashboard auto-filters to today\'s zone.</p>'+
+      '<div id="zone-list"></div></div></div>'+
+      '<div id="zone-form-area"></div>';
+    renderZList();
+    body.querySelector('#zones-add').addEventListener('click',function(){openZoneForm();});
+    body.querySelector('#zones-reset').addEventListener('click',function(){zones=DEFAULT_ZONES.slice();renderZList();toast('Reset to default zones','info');});
+    document.getElementById('sv-settings').onclick=function(){var s2=getSettings();s2.zones=zones;saveSettings(s2);toast('Dispatch zones saved','success');};
   } else if(_stab==='data'){
     var used=storageUsage(), pct=Math.min(Math.round(used/(5*1024*1024)*100),100);
     body.innerHTML='<div class="card"><div class="card-header"><span class="card-title">Storage Usage</span></div><div class="card-body">'+
